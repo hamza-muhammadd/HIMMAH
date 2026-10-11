@@ -3,6 +3,32 @@ window.CMS = {
   url: 'https://ektybjhehbrqpxtdtdup.supabase.co',
   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrdHliamhlaGJycXB4dGR0ZHVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNjE0NzUsImV4cCI6MjEwNjkzNzQ3NX0.mUTPk9nQW3ln2mXIdrLQfHAuf_CrfBL94QItgx-6v4A',
   site: 'default', _t: [],
+  BLANK: '\u200b',   // stored when someone deliberately empties a classic field: blank stays blank
+  CLASSIC_TITLE: 'BetterEveryday \u2014 The 7-Day Life Reset',
+  SYS: { copy: 'Copy', pay: 'Pay', send: 'Send', subscribe: 'Subscribe', ok: 'Thank you.', email: 'Email', name: 'Name', phone: 'Phone', message: 'Message', map: 'Map' },
+  // Is the optional classic template used by this site? Old sites that already have saved content keep it; new sites start blank.
+  classicOn: function (map) { if (map.classic === '1') return true; if (map.classic === '0') return false; return Object.keys(map).some(function (k) { return map[k]; }); },
+  loadClassic: function () { return this._cl || (this._cl = fetch('classic.html').then(function (r) { if (!r.ok) throw new Error('classic.html is missing'); return r.text(); })); },
+  empty: function (b) {
+    var T = function (k) { return String(b[k] == null ? '' : b[k]).trim(); }, any = function (a, ks) { return (a || []).some(function (x) { return ks.some(function (k) { return String(x[k] == null ? '' : x[k]).trim(); }); }); };
+    switch (b.type) {
+      case 'slider': return !any(b.items, ['img', 'kicker', 'title', 'text', 'btn', 'btn2']);
+      case 'text': case 'cta': return !(T('title') || T('sub') || T('btn'));
+      case 'split': return !(T('title') || T('sub') || T('list') || T('img') || T('btn'));
+      case 'image': return !T('img');
+      case 'video': return !/(youtu|vimeo)/i.test(T('url'));
+      case 'gallery': return !any(b.items, ['img']);
+      case 'cards': return !any(b.items, ['t', 'x', 'img']);
+      case 'steps': return !any(b.items, ['t', 'x']);
+      case 'course': return !any(b.items, ['t', 'lessons']);
+      case 'testimonials': return !any(b.items, ['q']);
+      case 'pricing': return !(any(b.items, ['name', 'price']) || any(b.items2, ['name']));
+      case 'faq': return !any(b.items, ['q']);
+      case 'contact': return !(T('title') || T('sub') || T('phone') || T('email') || T('wa') || T('addr') || T('hours') || T('map'));
+      case 'subscribe': return !(T('title') || T('sub') || T('btn') || T('ph'));
+      default: return false;
+    }
+  },
   RAT: { '1': '1/1', '43': '4/3', '169': '16/9', '34': '3/4', '219': '21/9', '32': '3/2' },
   HEIGHTS: { s: '360px', m: '540px', l: '700px', f: '100vh' },
   PAD: { s: [48, 32], l: [132, 84], x: [170, 110] },
@@ -77,24 +103,24 @@ window.CMS = {
     return '<a class="btn' + (c ? ' ' + c : '') + '" href="' + this.esc(u) + '"' + (/^https?:/i.test(u) ? ' target="_blank" rel="noopener"' : '') + '>' + this.esc(t) + '</a>';
   },
   pic: function (src, o) {
-    o = o || {}; var r = this.RAT[o.ratio], st = '';
+    o = o || {}; var r = this.RAT[o.ratio], st = '', P = { top: 'center top', bottom: 'center bottom', left: 'left center', right: 'right center' };
     if (r) st += 'aspect-ratio:' + r + ';';
     st += 'border-radius:' + this.num(o.rad, 14, 0, 60) + 'px;';
-    return '<figure class="pic' + (o.shadow === '1' ? ' sh' : '') + (r ? ' hr' : '') + '" style="' + st + '"><img src="' + this.esc(this.safeUrl(src)) + '" alt="' + this.esc(o.alt || '') + '" loading="lazy" style="object-fit:' + (o.fit === 'contain' ? 'contain' : 'cover') + '"></figure>';
+    return '<figure class="pic' + (o.shadow === '1' ? ' sh' : '') + (r ? ' hr' : '') + '" style="' + st + '"><img src="' + this.esc(this.safeUrl(src)) + '" alt="' + this.esc(o.alt || '') + '" loading="lazy" style="object-fit:' + (o.fit === 'contain' ? 'contain' : 'cover') + (o.pos && P[o.pos] ? ';object-position:' + P[o.pos] : '') + '"></figure>';
   },
   plan: function (p) {
     var E = this.esc, f = (p.features || '').split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
     return '<div class="plan' + (p.hl === '1' ? ' hl' : '') + '">' + (p.badge ? '<span class="pbadge">' + E(p.badge) + '</span>' : '') +
       '<h3>' + E(p.name) + '</h3><div class="pp"><b>' + E(p.price) + '</b>' + (p.period ? '<i>' + E(p.period) + '</i>' : '') + '</div>' +
       (p.desc ? '<p class="pd">' + E(p.desc) + '</p>' : '') + '<ul>' + f.map(function (x) { return '<li>' + E(x) + '</li>'; }).join('') + '</ul>' +
-      this.btn(p.btn || 'Get started', p.url) + '</div>';
+      this.btn(p.btn, p.url) + '</div>';
   },
   payBox: function (pm, title, note, copy, pay) {
     var E = this.esc, self = this;
-    return '<div class="paybox"><h3>' + E(title || 'Other ways to pay') + '</h3>' + (note ? '<p>' + E(note) + '</p>' : '') + '<div class="pm">' + pm.map(function (m) {
+    return '<div class="paybox">' + (title ? '<h3>' + E(title) + '</h3>' : '') + (note ? '<p>' + E(note) + '</p>' : '') + '<div class="pm">' + pm.map(function (m) {
       return '<div class="pmc"><b>' + E(m.name) + '</b>' + (m.details ? '<span>' + E(m.details) + '</span>' : '') + '<div class="pa">' +
-        (m.details ? '<button type="button" class="cp" data-copy="' + E(m.details) + '">' + E(copy || 'Copy') + '</button>' : '') +
-        (m.url ? '<a class="pl" href="' + E(self.safeUrl(m.url)) + '" target="_blank" rel="noopener">' + E(pay || 'Pay now') + '</a>' : '') + '</div></div>';
+        (m.details ? '<button type="button" class="cp" data-copy="' + E(m.details) + '">' + E(copy || self.SYS.copy) + '</button>' : '') +
+        (m.url ? '<a class="pl" href="' + E(self.safeUrl(m.url)) + '" target="_blank" rel="noopener">' + E(pay || self.SYS.pay) + '</a>' : '') + '</div></div>';
     }).join('') + '</div></div>';
   },
   styleSec: function (el, st) {
@@ -109,7 +135,7 @@ window.CMS = {
     if (st.delay) el.setAttribute('data-delay', C.num(st.delay, 0, 0, 3000));
   },
   build: function (b, doc) {
-    var R = this.R[b.type]; if (!R) return null;
+    var R = this.R[b.type]; if (!R || this.empty(b)) return null;
     var h = R.call(this, b); if (h == null) return null;
     var s = doc.createElement('section'); s.id = 's-' + b.id;
     s.className = 'bk bk-' + b.type + (b.type === 'slider' ? ' sl' : '') + (b.type === 'cta' ? ' cta' : '');
@@ -171,28 +197,33 @@ window.CMS = {
   },
   apply: function (map, doc) {
     doc = doc || document;
-    var self = this, E = this.esc, c = this.collect(doc), cnt = 0, OLD = 'BetterEveryday', MOV = this.MOV;
+    var self = this, E = this.esc, BL = this.BLANK, classic = this.classicOn(map), MOV = this.MOV, cnt = 0, OLD = 'BetterEveryday';
+    var isSet = function (v) { return v !== undefined && v !== ''; };
     this._t.forEach(clearInterval); this._t = [];
-    var A = { hero: doc.querySelector('header.hero'), buy: doc.getElementById('buy'), final: doc.querySelector('.final'), foot: doc.querySelector('footer') };
-    var els = {}; MOV.forEach(function (i) { els[i] = doc.querySelector(self.BLOCKS[i][1]); if (els[i] && !els[i].id) els[i].id = 'sec-' + i; });
+    var c = classic ? this.collect(doc) : { texts: [], links: [], phs: [] };
+    var A = { hero: classic ? doc.querySelector('header.hero') : null, buy: classic ? doc.getElementById('buy') : null };
+    var els = {}; if (classic) MOV.forEach(function (i) { els[i] = doc.querySelector(self.BLOCKS[i][1]); if (els[i] && !els[i].id) els[i].id = 'sec-' + i; });
     function btnLink(a, u) { a.setAttribute('href', u); if (/^https?:/i.test(u)) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener'); } }
-    if (map.brand) {
-      cnt++; doc.title = doc.title.split(OLD).join(map.brand);
-      c.texts.forEach(function (t) { if (t.n.nodeValue.indexOf(OLD) > -1) t.n.nodeValue = t.n.nodeValue.split(OLD).join(map.brand); });
+    var brand = map.brand === BL ? '' : (map.brand || '');
+    doc.title = classic ? this.CLASSIC_TITLE : '';
+    if (classic && isSet(map.brand)) {
+      cnt++; doc.title = doc.title.split(OLD).join(brand);
+      c.texts.forEach(function (t) { if (t.n.nodeValue.indexOf(OLD) > -1) t.n.nodeValue = t.n.nodeValue.split(OLD).join(brand); });
     }
     c.texts.forEach(function (t) {
-      var v = map[t.k]; if (!v) return; cnt++;
+      var v = map[t.k]; if (!isSet(v)) return; cnt++;
+      if (v === BL) { t.n.nodeValue = ''; var p = t.n.parentNode; if (p && !p.textContent.trim() && !p.querySelector('img,svg,input')) p.style.display = 'none'; return; }
       var m = /^(\s*)[\s\S]*?(\s*)$/.exec(t.n.nodeValue); t.n.nodeValue = m[1] + v + m[2];
     });
-    c.links.forEach(function (l) { var v = map[l.k]; if (!v) return; cnt++; btnLink(l.el, self.safeUrl(v)); });
-    c.phs.forEach(function (x) { if (map[x.k]) { cnt++; x.el.setAttribute('placeholder', map[x.k]); } });
-    if (map.gumroad) {
+    c.links.forEach(function (l) { var v = map[l.k]; if (!isSet(v)) return; cnt++; if (v === BL) l.el.removeAttribute('href'); else btnLink(l.el, self.safeUrl(v)); });
+    c.phs.forEach(function (x) { var v = map[x.k]; if (!isSet(v)) return; cnt++; if (v === BL) x.el.removeAttribute('placeholder'); else x.el.setAttribute('placeholder', v); });
+    if (classic && map.gumroad) {
       var gu = self.safeUrl(map.gumroad), sels = map.gumroad_all === '1' ? ['.price .btn', 'header.hero .btn', '#product .btn', '.final .btn', 'nav .btn'] : ['.price .btn'];
       sels.forEach(function (s) { doc.querySelectorAll(s).forEach(function (a) { btnLink(a, gu); }); }); cnt++;
     }
     if (map.logo) {
       var lg = self.safeUrl(map.logo);
-      doc.querySelectorAll('.logo > svg').forEach(function (s) { var i = doc.createElement('img'); i.src = lg; i.alt = ''; i.className = 'logoimg'; s.replaceWith(i); });
+      if (classic) doc.querySelectorAll('.logo > svg').forEach(function (s) { var i = doc.createElement('img'); i.src = lg; i.alt = ''; i.className = 'logoimg'; s.replaceWith(i); });
       var fav = doc.createElement('link'); fav.rel = 'icon'; fav.href = lg; fav.setAttribute('data-cms', '1'); doc.head.appendChild(fav); cnt++;
     }
     if (map.hero_img && A.hero) {
@@ -210,55 +241,73 @@ window.CMS = {
       }
     }
     this.theme(map, doc);
-    if (map.title) doc.title = map.title;
+    if (map.title === BL) doc.title = ''; else if (map.title) doc.title = map.title; else if (!classic) doc.title = brand;
     if (map.desc) {
       var mt = doc.querySelector('meta[name=description]');
-      if (!mt) { mt = doc.createElement('meta'); mt.name = 'description'; doc.head.appendChild(mt); }
+      if (!mt) { mt = doc.createElement('meta'); mt.name = 'description'; mt.setAttribute('data-cms', '1'); doc.head.appendChild(mt); }
       mt.content = map.desc;
     }
-    var box = doc.querySelector('.soc'), soc = self.list(map.socials).filter(function (s) { return s.url; });
+    if (classic) self.list(map.hide).forEach(function (i) {
+      if (self.BLOCKS[i]) doc.querySelectorAll(self.BLOCKS[i][1]).forEach(function (e) { e.style.display = 'none'; });
+    });
+    if (classic) {
+      var plans = self.list(map.plans).filter(function (p) { return p.name || p.price; });
+      if (plans.length && A.buy) {
+        var w = doc.createElement('div'); w.className = 'plans plans-' + Math.min(plans.length, 3); w.innerHTML = plans.map(function (p) { return self.plan(p); }).join('');
+        var old = A.buy.querySelector('.price'), wr = A.buy.querySelector('.wrap');
+        if (old) old.replaceWith(w); else if (wr) wr.appendChild(w); cnt++;
+      }
+      var pm = self.list(map.pay).filter(function (m) { return m.name; });
+      if (pm.length && A.buy && A.buy.querySelector('.wrap')) {
+        var pw = doc.createElement('div'); pw.innerHTML = self.payBox(pm, map.pay_title, map.pay_note, map.copy_label, map.pay_btn);
+        A.buy.querySelector('.wrap').appendChild(pw.firstChild); cnt++;
+      }
+    }
+    // page builder sections, in your order (empty sections are never shown)
+    var B = self.list(map.blocks).filter(function (b) { return b && b.id && b.type; }), ss = self.obj(map.sstyle), lay = self.layoutOf(map, B), nodes = {};
+    if (classic) MOV.forEach(function (i) { nodes['L' + i] = els[i]; });
+    B.forEach(function (b) { var e = self.build(b, doc); if (e) { nodes['B' + b.id] = e; cnt++; } });
+    var nav = null, foot = null;
+    if (classic) foot = doc.querySelector('footer');
+    else { nav = doc.createElement('nav'); doc.body.insertBefore(nav, doc.body.firstChild); foot = doc.createElement('footer'); foot.id = 'footer'; doc.body.appendChild(foot); }
+    if (classic) lay.forEach(function (t) { if (t.charAt(0) === 'L' && nodes[t]) self.styleSec(nodes[t], ss[t]); });
+    var custom = B.length || self.list(map.layout).length || self.list(map.order).length, k = 0;
+    lay.forEach(function (t) {
+      var e = nodes[t]; if (!e) return; if (foot) foot.parentNode.insertBefore(e, foot); else doc.body.appendChild(e);
+      if (custom && e.tagName === 'SECTION' && !/\b(final|cta|sl)\b/.test(e.className) && e.style.display !== 'none' && !e.hasAttribute('data-bg')) { e.classList.toggle('alt', k % 2 === 1); k++; }
+    });
+    // menu from your sections
+    var mi = [];
+    lay.forEach(function (t) { var b = t.charAt(0) === 'B' && B.filter(function (x) { return 'B' + x.id === t; })[0]; if (b && nodes[t] && b.menu === '1' && b.hide !== '1') { var lb = String(b.mlabel || b.name || '').trim(); if (lb) mi.push({ label: lb, to: 's-' + b.id }); } });
+    var hasSec = mi.length;
+    self.list(map.menux).forEach(function (x) { if (x.label) mi.push({ label: x.label, url: x.url }); });
+    var menuHTML = mi.map(function (x) { return '<li><a class="l" href="' + E(x.to ? '#' + x.to : self.safeUrl(x.url || '#')) + '">' + E(x.label) + '</a></li>'; }).join('');
+    var soc = self.list(map.socials).filter(function (s) { return s.url; });
+    if (classic) {
+      var ul = doc.querySelector('nav ul');
+      if (hasSec && ul) { ul.innerHTML = menuHTML; cnt++; }
+      else if (ul) { var ct = B.filter(function (b) { return b.type === 'contact' && b.hide !== '1' && nodes['B' + b.id]; })[0]; if (ct) { var fl = ul.querySelector('a[href="#footer"]'); if (fl) fl.setAttribute('href', '#s-' + ct.id); } }
+      if (map.ctahide === '1') { var cb = doc.querySelector('nav > .wrap > .btn'); if (cb) cb.style.display = 'none'; }
+    } else {
+      // generic header and footer, built only from what you filled in
+      var logoImg = map.logo ? '<img class="logoimg" src="' + E(self.safeUrl(map.logo)) + '" alt="' + E(brand) + '">' : '';
+      var logoH = logoImg + (brand ? '<span class="serif">' + E(brand) + '</span>' : '');
+      var hb2 = self.btn(map.hdr_btn, map.hdr_url, 'sm');
+      var navH = (logoH ? '<a class="logo" href="#">' + logoH + '</a>' : '') + (mi.length ? '<ul>' + menuHTML + '</ul><button class="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>' : '') + hb2;
+      if (navH) nav.innerHTML = '<div class="wrap">' + navH + '</div>'; else nav.style.display = 'none';
+      var fls = self.list(map.flinks).filter(function (x) { return x.label; }).map(function (x) { return '<a href="' + E(self.safeUrl(x.url || '#')) + '">' + E(x.label) + '</a>'; });
+      var tag = (map.ftag && map.ftag !== BL) ? map.ftag : '', ft = (map.ftext && map.ftext !== BL) ? map.ftext : '';
+      var top = (logoH || tag || fls.length) ? '<div class="row"><div>' + (logoH ? '<div class="logo" style="color:var(--on-dark)">' + logoH + '</div>' : '') + (tag ? '<p class="small" style="color:var(--on-dark);opacity:.8;margin-top:6px">' + E(tag) + '</p>' : '') + '</div>' + (fls.length ? '<div class="links">' + fls.join('') + '</div>' : '') + '</div>' : '';
+      var base = (ft || soc.length) ? '<div class="base row" style="margin-top:32px"><span>' + E(ft) + '</span><div class="soc"></div></div>' : '';
+      if (top || base) foot.innerHTML = '<div class="wrap">' + top + base + '</div>'; else foot.style.display = 'none';
+    }
+    var box = doc.querySelector('.soc');
     if (box) {
       box.innerHTML = soc.map(function (s) {
         return '<a href="' + E(self.safeUrl(s.url)) + '" target="_blank" rel="noopener" aria-label="' + E(s.p) + '"><svg class="ico" viewBox="0 0 24 24">' + (self.ICONS[s.p] || self.ICONS.web) + '</svg></a>';
       }).join('');
       box.style.display = soc.length ? '' : 'none';
     }
-    self.list(map.hide).forEach(function (i) {
-      if (self.BLOCKS[i]) doc.querySelectorAll(self.BLOCKS[i][1]).forEach(function (e) { e.style.display = 'none'; });
-    });
-    // legacy pricing plans + payment methods
-    var plans = self.list(map.plans).filter(function (p) { return p.name || p.price; });
-    if (plans.length && A.buy) {
-      var w = doc.createElement('div'); w.className = 'plans plans-' + Math.min(plans.length, 3); w.innerHTML = plans.map(function (p) { return self.plan(p); }).join('');
-      var old = A.buy.querySelector('.price'), wr = A.buy.querySelector('.wrap');
-      if (old) old.replaceWith(w); else if (wr) wr.appendChild(w); cnt++;
-    }
-    var pm = self.list(map.pay).filter(function (m) { return m.name; });
-    if (pm.length && A.buy && A.buy.querySelector('.wrap')) {
-      var pw = doc.createElement('div'); pw.innerHTML = self.payBox(pm, map.pay_title, map.pay_note, map.copy_label, map.pay_btn);
-      A.buy.querySelector('.wrap').appendChild(pw.firstChild); cnt++;
-    }
-    // page builder: sections in your order
-    var B = self.list(map.blocks).filter(function (b) { return b && b.id && b.type; }), ss = self.obj(map.sstyle), lay = self.layoutOf(map, B), nodes = {};
-    MOV.forEach(function (i) { nodes['L' + i] = els[i]; });
-    B.forEach(function (b) { var e = self.build(b, doc); if (e) { nodes['B' + b.id] = e; cnt++; } });
-    lay.forEach(function (t) { if (t.charAt(0) === 'L' && nodes[t]) self.styleSec(nodes[t], ss[t]); });
-    var custom = B.length || self.list(map.layout).length || self.list(map.order).length, k = 0;
-    if (A.foot && MOV.every(function (i) { return els[i]; })) lay.forEach(function (t) {
-      var e = nodes[t]; if (!e) return; A.foot.parentNode.insertBefore(e, A.foot);
-      if (custom && e.tagName === 'SECTION' && !/\b(final|cta|sl)\b/.test(e.className) && e.style.display !== 'none' && !e.hasAttribute('data-bg')) { e.classList.toggle('alt', k % 2 === 1); k++; }
-    });
-    // header: menu from sections, contact link, header button
-    var ul = doc.querySelector('nav ul'), mi = [];
-    lay.forEach(function (t) { var b = t.charAt(0) === 'B' && B.filter(function (x) { return 'B' + x.id === t; })[0]; if (b && b.menu === '1' && b.hide !== '1') mi.push({ label: b.mlabel || b.name || b.title || 'Section', to: 's-' + b.id }); });
-    if (mi.length && ul) {
-      self.list(map.menux).forEach(function (x) { if (x.label) mi.push({ label: x.label, url: x.url }); });
-      ul.innerHTML = mi.map(function (x) { return '<li><a class="l" href="' + E(x.to ? '#' + x.to : self.safeUrl(x.url || '#')) + '">' + E(x.label) + '</a></li>'; }).join(''); cnt++;
-    } else if (ul) {
-      var ct = B.filter(function (b) { return b.type === 'contact' && b.hide !== '1'; })[0];
-      if (ct) { var fl = ul.querySelector('a[href="#footer"]'); if (fl) fl.setAttribute('href', '#s-' + ct.id); }
-    }
-    if (map.ctahide === '1') { var cb = doc.querySelector('nav > .wrap > .btn'); if (cb) cb.style.display = 'none'; }
     var wd = (map.wa || '').replace(/\D/g, '');
     if (wd) {
       var wa = doc.createElement('a'); wa.className = 'wafab'; wa.target = '_blank'; wa.rel = 'noopener'; wa.setAttribute('aria-label', 'WhatsApp');
@@ -300,7 +349,7 @@ CMS.R = (function (C) {
   var head = function (b) { return (b.title ? '<h2>' + E(b.title) + '</h2>' : '') + (b.sub ? '<p class="lead">' + E(b.sub) + '</p>' : ''); };
   var bp = function (b, two) { var h = C.btn(b.btn, b.url) + (two ? C.btn(b.btn2, b.url2, 'gh') : ''); return h ? '<p class="bp">' + h + '</p>' : ''; };
   var it = function (b, k) { return b[k || 'items'] || []; };
-  var ci = function (ic, lab, h) { return '<div class="ci"><svg class="ico" viewBox="0 0 24 24">' + C.ICONS[ic] + '</svg><div><b>' + E(lab) + '</b>' + h + '</div></div>'; };
+  var ci = function (ic, lab, h) { return '<div class="ci"><svg class="ico" viewBox="0 0 24 24">' + C.ICONS[ic] + '</svg><div>' + (lab ? '<b>' + E(lab) + '</b>' : '') + h + '</div></div>'; };
   function vid(u) {
     u = (u || '').trim(); var m;
     if ((m = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{6,})/.exec(u))) return 'https://www.youtube-nocookie.com/embed/' + m[1];
@@ -364,20 +413,20 @@ CMS.R = (function (C) {
     },
     contact: function (b) {
       var lb = (b.labs || '').split(',').map(function (s) { return s.trim(); }), r = [];
-      if (b.phone) r.push(ci('phone', lb[0] || 'Phone', '<a href="tel:' + E(b.phone.replace(/[^\d+]/g, '')) + '">' + E(b.phone) + '</a>'));
-      if (b.email) r.push(ci('email', lb[1] || 'Email', '<a href="mailto:' + E(b.email) + '">' + E(b.email) + '</a>'));
-      if (b.wa) r.push(ci('whatsapp', lb[2] || 'WhatsApp', '<a href="https://wa.me/' + E(b.wa.replace(/\D/g, '')) + '" target="_blank" rel="noopener">' + E(b.wa) + '</a>'));
-      if (b.addr) r.push(ci('pin', lb[3] || 'Address', '<span>' + E(b.addr) + '</span>'));
-      if (b.hours) r.push(ci('clock', lb[4] || 'Hours', '<span>' + E(b.hours) + '</span>'));
-      var form = b.form !== '', map = b.map ? '<p class="bp" style="justify-content:flex-start">' + C.btn(b.mapbtn || 'Open map', b.map, 'gh sm') + '</p>' : '';
+      if (b.phone) r.push(ci('phone', lb[0], '<a href="tel:' + E(b.phone.replace(/[^\d+]/g, '')) + '">' + E(b.phone) + '</a>'));
+      if (b.email) r.push(ci('email', lb[1], '<a href="mailto:' + E(b.email) + '">' + E(b.email) + '</a>'));
+      if (b.wa) r.push(ci('whatsapp', lb[2], '<a href="https://wa.me/' + E(b.wa.replace(/\D/g, '')) + '" target="_blank" rel="noopener">' + E(b.wa) + '</a>'));
+      if (b.addr) r.push(ci('pin', lb[3], '<span>' + E(b.addr) + '</span>'));
+      if (b.hours) r.push(ci('clock', lb[4], '<span>' + E(b.hours) + '</span>'));
+      var form = b.form !== '', map = b.map ? '<p class="bp" style="justify-content:flex-start">' + C.btn(b.mapbtn || C.SYS.map, b.map, 'gh sm') + '</p>' : '';
       return W(head(b) + '<div class="ct-grid' + (form ? '' : ' one') + '"><div class="ct-i">' + r.join('') + map + '</div>' + (form ?
-        '<div class="ct-f"><form data-msg><input name="name" required placeholder="' + E(b.pname || 'Your name') + '" aria-label="Name"><input name="email" type="email" placeholder="' + E(b.pemail || 'Email') + '" aria-label="Email"><input name="phone" placeholder="' + E(b.pphone || 'Phone (optional)') + '" aria-label="Phone">' +
-        '<textarea name="message" required placeholder="' + E(b.pmsg || 'How can we help?') + '" aria-label="Message"></textarea><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">' + E(b.fbtn || 'Send message') + '</button></form>' +
-        '<p class="subok" hidden>' + E(b.okmsg || 'Thank you. We will reply soon.') + '</p><p class="suberr" hidden>Something went wrong. Please try again.</p></div>' : '') + '</div>', true);
+        '<div class="ct-f"><form data-msg><input name="name" required placeholder="' + E(b.pname || C.SYS.name) + '" aria-label="Name"><input name="email" type="email" placeholder="' + E(b.pemail || C.SYS.email) + '" aria-label="Email"><input name="phone" placeholder="' + E(b.pphone || C.SYS.phone) + '" aria-label="Phone">' +
+        '<textarea name="message" required placeholder="' + E(b.pmsg || C.SYS.message) + '" aria-label="Message"></textarea><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">' + E(b.fbtn || C.SYS.send) + '</button></form>' +
+        '<p class="subok" hidden>' + E(b.okmsg || C.SYS.ok) + '</p><p class="suberr" hidden>Something went wrong. Please try again.</p></div>' : '') + '</div>', true);
     },
     subscribe: function (b) {
-      return W(head(b) + '<div class="bsub"><form class="sbf" data-sub><input type="email" name="email" required placeholder="' + E(b.ph || 'Your email address') + '" aria-label="Email"><button class="btn" type="submit">' + E(b.btn || 'Subscribe') + '</button></form>' +
-        '<p class="subok" hidden>' + E(b.okmsg || 'Thank you. You are subscribed.') + '</p><p class="suberr" hidden>Something went wrong. Please try again.</p></div>', true);
+      return W(head(b) + '<div class="bsub"><form class="sbf" data-sub><input type="email" name="email" required placeholder="' + E(b.ph || C.SYS.email) + '" aria-label="Email"><button class="btn" type="submit">' + E(b.btn || C.SYS.subscribe) + '</button></form>' +
+        '<p class="subok" hidden>' + E(b.okmsg || C.SYS.ok) + '</p><p class="suberr" hidden>Something went wrong. Please try again.</p></div>', true);
     },
     video: function (b) {
       var u = vid(b.url); if (!u) return null;
