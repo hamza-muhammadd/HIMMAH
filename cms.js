@@ -281,13 +281,19 @@ window.CMS = {
     var mi = [];
     lay.forEach(function (t) { var b = t.charAt(0) === 'B' && B.filter(function (x) { return 'B' + x.id === t; })[0]; if (b && nodes[t] && b.menu === '1' && b.hide !== '1') { var lb = String(b.mlabel || b.name || '').trim(); if (lb) mi.push({ label: lb, to: 's-' + b.id }); } });
     var hasSec = mi.length;
+    // published pages join the menu automatically (Home first, current page highlighted)
+    var pcur = map.pagecur || '', pgi = self.list(map.pagenav).filter(function (x) { return x && x.s && x.l; }).map(function (x) { return { label: x.l, url: self.pageHref(x.s), own: 1, on: x.s === pcur }; });
+    if (!classic && pgi.length) pgi.unshift({ label: 'Home', url: self.pageHref(''), own: 1, on: !pcur });
+    if (!classic || hasSec) mi = pgi.concat(mi);
     self.list(map.menux).forEach(function (x) { if (x.label) mi.push({ label: x.label, url: x.url }); });
-    var menuHTML = mi.map(function (x) { return '<li><a class="l" href="' + E(x.to ? '#' + x.to : self.safeUrl(x.url || '#')) + '">' + E(x.label) + '</a></li>'; }).join('');
+    var liH = function (x) { return '<li><a class="' + (x.on ? 'l on' : 'l') + '" href="' + E(x.to ? '#' + x.to : (x.own ? x.url : self.safeUrl(x.url || '#'))) + '">' + E(x.label) + '</a></li>'; };
+    var menuHTML = mi.map(liH).join('');
     var soc = self.list(map.socials).filter(function (s) { return s.url; });
     if (classic) {
       var ul = doc.querySelector('nav ul');
       if (hasSec && ul) { ul.innerHTML = menuHTML; cnt++; }
       else if (ul) { var ct = B.filter(function (b) { return b.type === 'contact' && b.hide !== '1' && nodes['B' + b.id]; })[0]; if (ct) { var fl = ul.querySelector('a[href="#footer"]'); if (fl) fl.setAttribute('href', '#s-' + ct.id); } }
+      if (!hasSec && pgi.length && ul) { ul.insertAdjacentHTML('beforeend', pgi.map(liH).join('')); cnt++; }
       if (map.ctahide === '1') { var cb = doc.querySelector('nav > .wrap > .btn'); if (cb) cb.style.display = 'none'; }
     } else {
       // generic header and footer, built only from what you filled in
@@ -346,12 +352,23 @@ window.CMS = {
       self.site = self.pick(Array.isArray(r[0]) ? r[0] : [], Array.isArray(r[1]) ? r[1] : []);
       if (!self.site) return {};
       var ps = self.pageSlug();
-      return self.load(self.site).then(function (map) {
+      return Promise.all([
+        self.load(self.site),
+        self.get('public_pages?select=slug,title,menu_label&site=eq.' + encodeURIComponent(self.site) + '&in_menu=eq.true&order=sort,created_at').catch(function () { return []; })
+      ]).then(function (rs) {
+        var map = rs[0], nav = Array.isArray(rs[1]) ? rs[1].map(function (p) { return { s: p.slug, l: p.menu_label || p.title || p.slug }; }) : [];
+        map.pagenav = nav.length ? JSON.stringify(nav) : ''; map.pagecur = ps;
         if (!ps) return map;
         return self.get('public_pages?select=title,content&site=eq.' + encodeURIComponent(self.site) + '&slug=eq.' + encodeURIComponent(ps))
           .then(function (rows) { return self.mergePage(map, Array.isArray(rows) ? rows[0] : null); });
       });
     });
+  },
+  // Address of the home page ('') or of an extra page. Keeps ?site= on preview addresses.
+  pageHref: function (slug) {
+    var q = []; if (/[?&]site=/.test(location.search)) q.push('site=' + encodeURIComponent(this.site));
+    if (slug) q.push('page=' + encodeURIComponent(slug));
+    return 'index.html' + (q.length ? '?' + q.join('&') : '');
   },
   // Which extra page was asked for? Only ?page=slug (safe on every host).
   pageSlug: function () {

@@ -471,7 +471,7 @@ function render(){
   card('Buttons, corners and motion','','<div class="g2"><div>'+fld(['btn','Button style','s:=Solid|outline=Outline|soft=Soft tint'],T.btn,'data-x="t_btn"')+'</div><div>'+fld(['shape','Button shape','s:=Original|sq=Square|rd=Rounded|pill=Pill'],T.shape,'data-x="t_shape"')+'</div><div>'+fld(['rc','Card corner roundness (px)','n:0:40:2:14'],T.rc,'data-x="t_rc"')+'</div><div>'+fld(['anim','Default animation for all sections','s:=Fade up|none=None|down=Fade down|left=Slide from left|right=Slide from right|zoom=Zoom in|fade=Fade|flip=Flip|blur=Blur in'],T.anim,'data-x="t_anim"')+'</div></div>');
  var cta=function(c){return c?field(c.k,'',c.def,false):''};
  P.menu=!CL?genMenu():card('Header button','The button on the right of the top menu.',(K.ctaT?field(K.ctaT.k,'Button text',K.ctaT.def,false):'')+(K.ctaL?field(K.ctaL.k,'Button link',K.ctaL.def,false):'')+'<div class="sr" style="border:0;padding-top:16px"><label class="sw"><input type="checkbox" id="m_cta"'+(saved.ctahide==='1'?'':' checked')+'><i></i></label><span class="nm">Show the header button</span></div>')+
-  card('Menu links','Switch on "Show this section in the top menu" inside any section and it appears here automatically.','<p class="sep" style="margin-top:6px">In your menu now</p><div id="autom"></div><p class="sep">Extra links</p>'+ilist('menux','Add a link'))+
+  card('Menu links','Published pages appear here automatically (turn one off or reorder it in Pages). Also switch on "Show this section in the top menu" inside any section and it appears here automatically.','<p class="sep" style="margin-top:6px">In your menu now</p><div id="autom"></div><p class="sep">Extra links</p>'+ilist('menux','Add a link'))+
   '<details class="bkrow"><summary><span class="bn">Classic menu words</span><span class="tg">used when no section is in the menu</span></summary><div class="bkb">'+
   C.texts.filter(function(t){return t.sec===0&&t!==K.ctaT}).map(function(t){return field(t.k,kind(t),t.def,false)}).join('')+C.links.filter(function(l){return l.sec===0&&l!==K.ctaL}).map(function(l){return field(l.k,'Link · '+l.label.slice(0,30),l.def,false)}).join('')+'</div></details>';
  P.price=!CL?card('Pricing','Plans and payment methods now live inside the Pricing section of the Page builder, where you can add as many as you need. This tab only serves the optional classic template.',''):card('Main checkout link','Used by the classic pricing button and, if you switch it on, every classic buy button. Works with Gumroad, Stripe, Lemon Squeezy, SSLCommerz or any payment link.',
@@ -492,11 +492,12 @@ function render(){
  renderBuilder();['plans','pay','menux','flinks'].forEach(lrender);CMS.list(saved.socials).forEach(socRow);
  ['logo'].forEach(pv);ghint();$('pvf').addEventListener('load',postPrev)}
 function genMenu(){return card('Header button','An optional button at the right of the top menu. Leave the text empty for no button.','<div class="g2"><div>'+plain('hdr_btn','Button text',saved.hdr_btn||'','e.g. Contact us')+'</div><div>'+plain('hdr_url','Button link',saved.hdr_url||'','https://… or #section')+'</div></div>')+
- card('Menu links','Switch on "Show this section in the top menu" inside any section. A section appears in the menu once it has content and a name.','<p class="sep" style="margin-top:6px">In your menu now</p><div id="autom"></div><p class="sep">Extra links</p>'+ilist('menux','Add a link'))+
+ card('Menu links','Published pages appear here automatically (turn one off or reorder it in Pages). Also switch on "Show this section in the top menu" inside any section. A section appears in the menu once it has content and a name.','<p class="sep" style="margin-top:6px">In your menu now</p><div id="autom"></div><p class="sep">Extra links</p>'+ilist('menux','Add a link'))+
  card('Footer','Everything is optional. Empty parts are not shown.',plain('ftag','Short line under the name',saved.ftag||'','e.g. What you do, in one line')+plain('ftext','Footer text (for example a copyright line)',saved.ftext||'','e.g. © 2026 Your Business')+'<p class="sep">Footer links</p>'+ilist('flinks','Add a footer link'))}
 function ghint(){var e=$('g_url');if(e)$('g_hint').textContent=e.value.trim()?'This link is used after you press Publish.':'No link yet: the classic pricing button does nothing until you add one.'}
 function autoMenu(){sync();var h=layout.map(function(t){return B.filter(function(b){return 'B'+b.id===t&&b.menu==='1'&&b.hide!=='1'&&!isEmpty(b)&&String(b.mlabel||b.name||'').trim()})[0]}).filter(Boolean).map(function(b){return '<span class="tg" style="margin:0 6px 6px 0;display:inline-block">'+esc(b.mlabel||b.name)+'</span>'}).join('');
- $('autom').innerHTML=h||'<p class="hint">No section is in the menu yet.</p>'}
+pgEnsure().then(function(){var b=$('autom');if(!b)return;var n=pgNav(),ph=n.length?'<span class="tg" style="margin:0 6px 6px 0;display:inline-block">Home</span>'+n.map(function(x){return '<span class="tg" style="margin:0 6px 6px 0;display:inline-block">'+esc(x.l)+' <small>(page)</small></span>'}).join(''):'';
+  b.innerHTML=(ph+h)||'<p class="hint">Nothing is in the menu yet.</p>'})}
 /* ---------- pictures ---------- */
 function resize(f,max,png){return new Promise(function(res,rej){var im=new Image(),u=URL.createObjectURL(f);
  im.onload=function(){var s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));
@@ -546,7 +547,7 @@ function collect(pub){sync();var R={},v=function(i){return $(i)?$(i).value.trim(
  return Object.keys(R).map(function(k){return {site:site,key:k,value:R[k]}})}
 function defTitle(){return CL?CMS.CLASSIC_TITLE.split(OLD).join(shown):''}
 function mapNow(){var m={};collect().forEach(function(r){m[r.key]=r.value});return m}
-function postPrev(){var f=$('pvf');if(!f||!f.contentWindow)return;try{f.contentWindow.postMessage({be:'preview',map:mapNow()},location.origin)}catch(e){}}
+function postPrev(){var f=$('pvf');if(!f||!f.contentWindow)return;pgEnsure().then(function(){try{var m=mapNow(),n=pgNav();m.pagenav=n.length?JSON.stringify(n):'';m.pagecur=PG?PG.slug:'';f.contentWindow.postMessage({be:'preview',map:m},location.origin)}catch(e){}})}
 function save(){if(!canEditR()){toast('You do not have permission to publish.',true);return}if(PG)return pageSave();clearTimeout(dT);var rows=collect(true),b=$('save');b.disabled=true;b.textContent='Publishing…';
  var done=function(){b.disabled=false;b.textContent='Publish'},fail=function(t){toast(t,true,true);done()};
  makeBk().catch(function(){}).then(function(){return rest('POST','site_content?on_conflict=site,key',rows,'resolution=merge-duplicates,return=representation')})
@@ -568,21 +569,26 @@ function pgUrl(slug){return 'index.html?site='+enc(site)+(slug?'&page='+enc(slug
 function pgBadge(s){return '<span class="pgb pgb-'+s+'">'+(s==='published'?'Published':s==='archived'?'Archived':'Draft')+'</span>'}
 function pgFail(e){toast('Could not do that: '+(e&&e.message||e),true,true)}
 function pgCall(r){return rj(r).then(function(j){if(!r.ok)throw new Error((j&&j.message)||('error '+r.status));return j})}
+var PGSITE='';
+function fetchPgl(){var s=site;return CMS.get('site_pages?select=id,slug,title,status,updated_at,published_at,draft,in_menu,menu_label,sort&site=eq.'+enc(s)+'&order=sort,created_at',token).then(function(rows){
+  if(!Array.isArray(rows))throw new Error((rows&&rows.message)||'could not load pages (run pages_m2.sql and menu_m3.sql in Supabase)');if(s===site){PGLIST=rows;PGSITE=s}return rows})}
+function pgEnsure(){return PGSITE===site?Promise.resolve():fetchPgl().catch(function(){})}
+function pgNav(){return PGLIST.filter(function(p){return p.status==='published'&&p.in_menu!==false}).map(function(p){return {s:p.slug,l:p.menu_label||p.title||p.slug}})}
 function loadPages(){var box=$('pgbox');if(!box)return;var g=gen;box.innerHTML='<p class="hint">Loading pages…</p>';
- CMS.get('site_pages?select=id,slug,title,status,updated_at,published_at,draft&site=eq.'+enc(site)+'&order=sort,created_at',token).then(function(rows){
-  if(g!==gen)return;if(!Array.isArray(rows))throw new Error((rows&&rows.message)||'could not load pages (run pages_m2.sql in Supabase)');PGLIST=rows;drawPages()})
+ fetchPgl().then(function(){if(g!==gen)return;drawPages()})
  .catch(function(e){box.innerHTML='<p class="hint err">'+esc(e.message)+'</p>'})}
 function drawPages(){var box=$('pgbox');if(!box)return;var can=canEditR(),q=PGQ.trim().toLowerCase();
  var homeLive=Object.keys(DBK||{}).length>0;
  var rows=PGLIST.filter(function(p){return !q||(p.title+' '+p.slug).toLowerCase().indexOf(q)>-1});
  var home=(!q||'home'.indexOf(q)>-1)?'<div class="mg pgrow"><div><b>Home</b> '+pgBadge(homeLive?'published':'draft')+'<div class="hint">Main page of this website · <code>index.html</code></div></div><div class="rw"><button class="btn sm" type="button" data-pg="edithome">Edit</button><a class="btn gh sm" href="'+esc(pgUrl(''))+'" target="_blank" rel="noopener">View</a></div></div>':'';
  var list=rows.map(function(p){var ver=PGVER[p.id];
-  return '<div class="mg pgrow"><div><b>'+esc(p.title||p.slug)+'</b> '+pgBadge(p.status)+(p.draft?' <span class="pgb pgb-draft">Unpublished changes</span>':'')+'<div class="hint">/'+esc(p.slug)+' · edited '+esc(new Date(p.updated_at).toLocaleString())+'</div></div>'+
+  return '<div class="mg pgrow"><div><b>'+esc(p.title||p.slug)+'</b> '+pgBadge(p.status)+(p.draft?' <span class="pgb pgb-draft">Unpublished changes</span>':'')+'<div class="hint">/'+esc(p.slug)+(p.status==='published'?' · menu: '+(p.in_menu!==false?esc(p.menu_label||p.title||p.slug):'hidden'):'')+' · edited '+esc(new Date(p.updated_at).toLocaleString())+'</div></div>'+
   '<div class="rw">'+(can?'<button class="btn sm" type="button" data-pg="edit" data-id="'+p.id+'">Edit</button>':'')+
   (p.status==='published'?'<a class="btn gh sm" href="'+esc(pgUrl(p.slug))+'" target="_blank" rel="noopener">View</a>':'')+
   (can&&p.status!=='published'?'<button class="btn gh sm" type="button" data-pg="publish" data-id="'+p.id+'">Publish</button>':'')+
   (can&&p.status==='published'?'<button class="btn gh sm" type="button" data-pg="unpublish" data-id="'+p.id+'">Unpublish</button>':'')+
   (can?'<button class="btn gh sm" type="button" data-pg="dup" data-id="'+p.id+'">Duplicate</button>':'')+
+  (can?'<button class="btn gh sm" type="button" data-pg="menu" data-id="'+p.id+'" aria-pressed="'+(p.in_menu!==false)+'">'+(p.in_menu!==false?'In menu ✓':'Not in menu')+'</button><button class="btn gh sm" type="button" data-pg="mlabel" data-id="'+p.id+'" title="Name shown in the menu">Menu name</button><button class="btn gh sm" type="button" data-pg="up" data-id="'+p.id+'" aria-label="Move up in menu">↑</button><button class="btn gh sm" type="button" data-pg="down" data-id="'+p.id+'" aria-label="Move down in menu">↓</button>':'')+
   (can?'<button class="btn gh sm" type="button" data-pg="ver" data-id="'+p.id+'">Versions</button>':'')+
   (canManageR()?'<button class="btn dg sm" type="button" data-pg="del" data-id="'+p.id+'">Delete</button>':'')+'</div>'+
   (ver?'<div class="pgver">'+(ver.length?ver.map(function(v){return '<div class="rw" style="justify-content:space-between"><span class="hint" style="margin:0">'+esc(new Date(v.created_at).toLocaleString())+'</span><button class="btn gh sm" type="button" data-pg="restore" data-id="'+p.id+'" data-vid="'+v.id+'">Restore as draft</button></div>'}).join(''):'<p class="hint">No earlier versions yet. One is saved every time you publish.</p>')+'</div>':'')+'</div>'}).join('');
@@ -591,7 +597,7 @@ function drawPages(){var box=$('pgbox');if(!box)return;var can=canEditR(),q=PGQ.
  var qi=$('pgq');if(qi&&PGQ){qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length)}}
 function uniqueSlug(base){var s=base||'page',n=2,have=PGLIST.map(function(p){return p.slug});var out=s;while(have.indexOf(out)>-1||out==='home'||out==='index'||out==='admin'||out==='classic'||out==='api'||out==='assets'){out=s+'-'+(n++)}return out.slice(0,60)}
 function newPage(){var t=prompt('Name of the new page (for example: About us)');if(t===null)return;t=t.trim();if(!t){toast('Please type a name.',true);return}
- var slug=uniqueSlug(slugify(t));
+ var slug=uniqueSlug(slugify(t));PGSITE='';
  rest('POST','site_pages',{site:site,slug:slug,title:t.slice(0,200),status:'draft',content:{},draft:pageKeys({})},'return=representation').then(pgCall).then(function(j){logEv(site,'page.created',{slug:slug});toast('✓ Page “'+esc(t)+'” created as a draft.');openPage(j[0].id)}).catch(pgFail)}
 function openPage(id){var go_=function(){return CMS.get('site_pages?select=*&id=eq.'+id,token).then(function(rows){var r=rows&&rows[0];if(!r)throw new Error('page not found');return CMS.load(site,token).then(function(glob){
    PG=r;PGV=r.updated_at;gen++;var c=r.draft||r.content||{};
@@ -602,9 +608,17 @@ function openPage(id){var go_=function(){return CMS.get('site_pages?select=*&id=
  var pre=(dirty&&canEditR())?saveDraft():Promise.resolve();
  return pre.then(go_).catch(pgFail)}
 function editHome(){var pre=(dirty&&canEditR())?saveDraft():Promise.resolve();pre.then(function(){return loadSite()}).then(function(){go('build')}).catch(pgFail)}
+function pgPatch(id,body){return rest('PATCH','site_pages?id=eq.'+id,body,'return=representation').then(pgCall).then(function(j){if(!j||!j.length)throw new Error('not allowed');if(PG&&PG.id===id)PGV=j[0].updated_at;return j[0]})}
+function pgMenuAction(a,p){var go2=function(pr){return pr.then(function(){PGSITE='';loadPages()}).catch(pgFail)};
+ if(a==='menu')return go2(pgPatch(p.id,{in_menu:p.in_menu===false}));
+ if(a==='mlabel'){var v=prompt('Name shown in the menu (leave empty to use the page name):',p.menu_label||'');if(v===null)return;v=v.trim().slice(0,60);return go2(pgPatch(p.id,{menu_label:v}))}
+ var ids=PGLIST.map(function(x){return x.id}),i=ids.indexOf(p.id),j=a==='up'?i-1:i+1;if(j<0||j>=ids.length)return;
+ var tmp=ids[i];ids[i]=ids[j];ids[j]=tmp;
+ return go2(Promise.all(ids.map(function(id,n){var cur=PGLIST.filter(function(x){return x.id===id})[0];return cur.sort===(n+1)*10?null:pgPatch(id,{sort:(n+1)*10})})))}
 function pgAction(a,id,el){var p=PGLIST.filter(function(x){return x.id===id})[0];
  if(a==='new')return newPage();if(a==='edithome')return editHome();if(a==='edit')return openPage(id);
  if(!p)return;
+ if(a==='menu'||a==='mlabel'||a==='up'||a==='down'){pgMenuAction(a,p);return}
  if(a==='publish'){rest('POST','rpc/publish_page',{p_id:id,p_content:p.draft||pageKeys({})}).then(pgCall).then(function(){toast('✓ “'+esc(p.title||p.slug)+'” is published.');loadPages()}).catch(pgFail)}
  else if(a==='unpublish'){if(!confirm('Hide “'+(p.title||p.slug)+'” from visitors? It is kept as a draft and can be published again.'))return;
   rest('POST','rpc/unpublish_page',{p_id:id}).then(pgCall).then(function(){toast('Page is hidden from visitors.');loadPages()}).catch(pgFail)}
@@ -633,7 +647,7 @@ function pageSave(){clearTimeout(dT);var b=$('save'),pid=PG.id,rows=collect(true
   if(!r.ok){fail('Could not publish: '+((j&&j.message)||r.status)+' (run pages_m2.sql)');return}
   return CMS.get('site_pages?select=*&id=eq.'+pid,token).then(function(x){var p=x&&x[0];
    if(!p||p.status!=='published'||PAGEK.some(function(k){return String((p.content||{})[k]||'')!==pm[k]})){fail('Published, but reading it back failed. Please check the page.');return}
-   if(!PG||PG.id!==pid){done();return}PG=p;PGV=p.updated_at;dirty=false;$('dirty').hidden=true;draftOk=true;setSt('Page published');renderPgBar();
+   if(!PG||PG.id!==pid){done();return}PG=p;PGV=p.updated_at;PGSITE='';dirty=false;$('dirty').hidden=true;draftOk=true;setSt('Page published');renderPgBar();
    toast('✓ Published and checked.<a href="'+esc(pgUrl(p.slug))+'" target="_blank">Open page</a>');done()})})}).catch(function(e){fail('No connection: '+e.message)})}
 function pageDraft(){clearTimeout(dT);if(!token||!PG)return Promise.resolve();setSt('Saving draft…');var pid=PG.id,body={draft:pageKeys(mapNow())};
  return rest('PATCH','site_pages?id=eq.'+pid+'&updated_at=eq.'+enc(PGV),body,'return=representation').then(function(r){return rj(r).then(function(j){
