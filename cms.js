@@ -7,7 +7,8 @@ window.CMS = {
   CLASSIC_TITLE: 'BetterEveryday \u2014 The 7-Day Life Reset',
   SYS: { copy: 'Copy', pay: 'Pay', send: 'Send', subscribe: 'Subscribe', ok: 'Thank you.', email: 'Email', name: 'Name', phone: 'Phone', message: 'Message', map: 'Map' },
   // Is the optional classic template used by this site? Old sites that already have saved content keep it; new sites start blank.
-  classicOn: function (map) { if (map.classic === '1') return true; if (map.classic === '0') return false; return Object.keys(map).some(function (k) { return map[k]; }); },
+  // Strict: the classic template is shown ONLY when a site explicitly has classic = '1' (patch_m1.sql stamps older sites once).
+  classicOn: function (map) { return map.classic === '1'; },
   loadClassic: function () { return this._cl || (this._cl = fetch('classic.html').then(function (r) { if (!r.ok) throw new Error('classic.html is missing'); return r.text(); })); },
   empty: function (b) {
     var T = function (k) { return String(b[k] == null ? '' : b[k]).trim(); }, any = function (a, ks) { return (a || []).some(function (x) { return ks.some(function (k) { return String(x[k] == null ? '' : x[k]).trim(); }); }); };
@@ -327,17 +328,23 @@ window.CMS = {
       var m = {}; rows.forEach(function (x) { m[x.key] = x.value; }); return m;
     });
   },
-  // Which site is this page? Match the domain, or ?site=name, or the first site.
-  pick: function (list) {
+  // Which website is this page? Only a trusted domain record (or ?site= on a preview address) decides.
+  // Unknown domains show nothing, except platform preview addresses (*.vercel.app, localhost).
+  pick: function (dm, ps) {
     var host = location.hostname.replace(/^www\./, '').toLowerCase(), p = new URLSearchParams(location.search).get('site');
-    if (p && list.some(function (s) { return s.slug === p; })) return p;
-    var m = list.filter(function (s) { return (s.domains || '').split(/[\s,]+/).some(function (d) { return d && d.replace(/^www\./, '').toLowerCase() === host; }); })[0];
-    return m ? m.slug : (list[0] ? list[0].slug : 'default');
+    var slugs = (ps || []).map(function (x) { return x.slug; });
+    var preview = /(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(host);
+    // ?site= is honoured on preview addresses only, so a real domain can never show another website
+    if (preview && p && slugs.indexOf(p) > -1) return p;
+    var m = (dm || []).filter(function (d) { return d.hostname.replace(/^www\./, '') === host; })[0];
+    if (m) return m.site;
+    return preview ? (slugs[0] || '') : '';
   },
   loadLive: function () {
     var self = this;
-    return this.get('sites?select=slug,domains&order=created_at').then(function (l) {
-      self.site = self.pick(Array.isArray(l) ? l : []); return self.load(self.site);
+    return Promise.all([this.get('domain_map?select=hostname,site,is_primary'), this.get('public_sites?select=slug&order=created_at')]).then(function (r) {
+      self.site = self.pick(Array.isArray(r[0]) ? r[0] : [], Array.isArray(r[1]) ? r[1] : []);
+      return self.site ? self.load(self.site) : {};
     });
   }
 };
