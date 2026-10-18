@@ -303,11 +303,23 @@ window.CMS = {
     lay.forEach(function (t) { var b = t.charAt(0) === 'B' && B.filter(function (x) { return 'B' + x.id === t; })[0]; if (b && nodes[t] && b.menu === '1' && b.hide !== '1') { var lb = String(b.mlabel || b.name || '').trim(); if (lb) mi.push({ label: lb, to: 's-' + b.id }); } });
     var hasSec = mi.length;
     // published pages join the menu automatically (Home first, current page highlighted)
-    var pcur = map.pagecur || '', pgi = self.list(map.pagenav).filter(function (x) { return x && x.s && x.l; }).map(function (x) { return { label: x.l, url: self.pageHref(x.s), own: 1, on: x.s === pcur }; });
+    var pcur = map.pagecur || '', pall = self.list(map.pagenav).filter(function (x) { return x && x.s && x.l; }), allS = {}, topS = {}, kids = {};
+    pall.forEach(function (x) { allS[x.s] = 1; });
+    pall.forEach(function (x) { if (!x.p || !allS[x.p] || x.p === x.s) topS[x.s] = 1; });      // a page whose parent is missing stays at the top
+    pall.forEach(function (x) { if (!topS[x.s]) { if (topS[x.p]) (kids[x.p] = kids[x.p] || []).push(x); else topS[x.s] = 1; } });
+    var pgi = pall.filter(function (x) { return topS[x.s]; }).map(function (x) {
+      var k = (kids[x.s] || []).map(function (y) { return { label: y.l, url: self.pageHref(y.s), own: 1, on: y.s === pcur }; });
+      return { label: x.l, url: self.pageHref(x.s), own: 1, on: x.s === pcur || k.some(function (z) { return z.on; }), kids: k };
+    });
     if (!classic && pgi.length) pgi.unshift({ label: 'Home', url: self.pageHref(''), own: 1, on: !pcur });
     if (!classic || hasSec) mi = pgi.concat(mi);
     self.list(map.menux).forEach(function (x) { if (x.label) mi.push({ label: x.label, url: x.url }); });
-    var liH = function (x) { return '<li><a class="' + (x.on ? 'l on' : 'l') + '" href="' + E(x.to ? '#' + x.to : (x.own ? x.url : self.safeUrl(x.url || '#'))) + '">' + E(x.label) + '</a></li>'; };
+    var hrefOf = function (x) { return E(x.to ? '#' + x.to : (x.own ? x.url : self.safeUrl(x.url || '#'))); };
+    var liH = function (x) {
+      var a = '<a class="' + (x.on ? 'l on' : 'l') + '" href="' + hrefOf(x) + '">' + E(x.label) + (x.kids && x.kids.length ? ' <span class="car" aria-hidden="true">▾</span>' : '') + '</a>';
+      if (x.kids && x.kids.length) return '<li class="has-sub">' + a + '<div class="sub">' + x.kids.map(function (k) { return '<a class="' + (k.on ? 'l on' : 'l') + '" href="' + hrefOf(k) + '">' + E(k.label) + '</a>'; }).join('') + '</div></li>';
+      return '<li>' + a + '</li>';
+    };
     var menuHTML = mi.map(liH).join('');
     var soc = self.list(map.socials).filter(function (s) { return s.url; });
     if (classic) {
@@ -375,9 +387,12 @@ window.CMS = {
       var ps = self.pageSlug();
       return Promise.all([
         self.load(self.site),
-        self.get('public_pages?select=slug,title,menu_label&site=eq.' + encodeURIComponent(self.site) + '&in_menu=eq.true&order=sort,created_at').catch(function () { return []; })
+        (function () {
+          var q = '&site=eq.' + encodeURIComponent(self.site) + '&in_menu=eq.true&order=sort,created_at';
+          return self.get('public_pages?select=slug,title,menu_label,parent_slug' + q).then(function (r) { return Array.isArray(r) ? r : self.get('public_pages?select=slug,title,menu_label' + q); }).catch(function () { return []; });
+        })()
       ]).then(function (rs) {
-        var map = rs[0], nav = Array.isArray(rs[1]) ? rs[1].map(function (p) { return { s: p.slug, l: p.menu_label || p.title || p.slug }; }) : [];
+        var map = rs[0], nav = Array.isArray(rs[1]) ? rs[1].map(function (p) { var o = { s: p.slug, l: p.menu_label || p.title || p.slug }; if (p.parent_slug) o.p = p.parent_slug; return o; }) : [];
         map.pagenav = nav.length ? JSON.stringify(nav) : ''; map.pagecur = ps;
         if (!ps) return map;
         return self.get('public_pages?select=title,content&site=eq.' + encodeURIComponent(self.site) + '&slug=eq.' + encodeURIComponent(ps))

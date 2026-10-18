@@ -139,6 +139,7 @@ footer .sub{max-width:420px}footer .sub .sh{font:500 17px 'DM Sans',sans-serif;m
 html.cms-wait body{opacity:0}body{transition:opacity .45s ease}
 .btn{position:relative;min-height:48px;transition:transform .2s,box-shadow .25s,filter .2s}.btn:hover{box-shadow:0 10px 26px rgba(31,61,51,.28)}.btn:active{transform:scale(.97)}
 nav{transition:box-shadow .3s}nav.sc{box-shadow:0 6px 24px rgba(0,0,0,.08)}
+nav li.has-sub{position:relative}nav .car{font-size:11px;opacity:.7}nav .sub{display:none;position:absolute;top:100%;left:-14px;min-width:210px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.12);z-index:6}nav .sub a.l{display:block;padding:9px 0;white-space:nowrap}nav li.has-sub:hover>.sub,nav li.has-sub:focus-within>.sub{display:block}
 nav a.l{position:relative}nav a.l:after{content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--green);transition:width .3s}nav a.l:hover:after{width:100%}
 .burger{display:none;margin-left:auto;width:46px;height:46px;border:1px solid var(--line);border-radius:12px;background:none;cursor:pointer;flex-direction:column;justify-content:center;align-items:center;gap:5px}
 .burger span{width:20px;height:2px;border-radius:2px;background:var(--ink);transition:transform .3s,opacity .2s}
@@ -177,8 +178,8 @@ nav.open .burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}nav.o
 @media(max-width:900px){
 .burger{display:flex}
 nav ul{display:flex;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--bg);padding:0 24px;max-height:0;overflow:hidden;opacity:0;pointer-events:none;border-bottom:1px solid var(--line);transition:max-height .4s ease,opacity .3s,padding .3s}
-nav.open ul{max-height:360px;opacity:1;pointer-events:auto;padding:8px 24px 18px}
-nav ul li{border-bottom:1px solid var(--line)}nav ul li:last-child{border:0}nav a.l{display:block;padding:14px 0}nav a.on{border-bottom:0}
+nav.open ul{max-height:min(75vh,640px);overflow-y:auto;opacity:1;pointer-events:auto;padding:8px 24px 18px}
+nav ul li{border-bottom:1px solid var(--line)}nav ul li:last-child{border:0}nav .sub{display:block;position:static;min-width:0;padding:0 0 8px 16px;border:0;border-radius:0;box-shadow:none;background:none}nav .sub a.l{white-space:normal;padding:10px 0}nav .car{display:none}nav a.l{display:block;padding:14px 0}nav a.on{border-bottom:0}
 .stage{flex-direction:column;gap:30px}.pages{grid-auto-flow:column;gap:10px}
 }
 @media(max-width:700px){
@@ -270,7 +271,7 @@ section.sl{padding:0}
 </style>
 </head>
 <body>
-<script src="cms.js?v=11"></script>
+<script src="cms.js?v=12"></script>
 <script>
 (function(){
 var d=document,root=d.documentElement,dbg=/[?&]debug/.test(location.search),pre=/[?&]preview=1/.test(location.search),PRIS=d.body.innerHTML,TITLE=d.title,first=true,io=null,mo=null;
