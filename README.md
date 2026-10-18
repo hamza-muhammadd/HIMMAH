@@ -1,29 +1,26 @@
-# Milestone 1 hardening: how to apply
+# Step 1 - Pages (multi-page websites)
 
-Order matters. Do these in this order:
+## Install (in this order)
+1. Supabase -> SQL Editor -> New query -> paste ALL of `pages_m2.sql` -> Run. Expect "Success. No rows returned".
+   (It only ADDS two tables, a view and two functions. Your home page and data are not touched.)
+2. Upload `admin.html`, `cms.js`, `index.html` (cms.js is now `?v=10`). Hard refresh (Ctrl+Shift+R).
+3. Open the admin -> Pages & Content -> **Pages**.
 
-1. Supabase -> SQL Editor: run `patch_m1.sql` (safe to repeat, deletes nothing).
-   It marks your older sites with `classic='1'` so they keep their template.
-2. Upload `cms.js`, `admin.html`, `index.html` (only change: `cms.js?v=8` -> `?v=9`). Keep `classic.html` and `setup.sql` as they are.
-3. Hard-refresh the admin and open each site once to confirm it looks the same.
+If you upload the files before the SQL, the Pages screen just says "run pages_m2.sql". Nothing else breaks.
 
-If you upload `cms.js` BEFORE step 1, older sites lose the classic template until you run the SQL.
+## How it works
+- **Home** stays exactly as before (same builder, same publish).
+- **New page** creates a draft with its own address: `index.html?page=about`.
+- Each page has its own draft (autosave), Publish, Unpublish, Duplicate, Delete (admins only), search, and version history (last 25 publishes; "Restore as draft").
+- Visitors only see PUBLISHED pages. Drafts are never readable by visitors (database rule, tested).
+- Brand, colours and menu are shared by the whole website. If you change them while editing a page, Publish warns you and does not save them from the page.
 
-## What changed
-- classic template shows only when `classic = '1'` (it can no longer come back by accident).
-- `?site=` works only on preview addresses (vercel.app / localhost), never on a real domain.
-- Contact and subscribe forms: length and email checks.
-- Domain verification tokens are now random UUIDs.
-- Activity log accepts only clean short action names.
+## Tested
+- 51 database checks (2 websites, owner/admin/editor/viewer/stranger/visitor): all pass. The earlier 64 checks still pass.
+- Admin screen (list, search, open, publish, create) and public pages (home, page, missing page, bad address) tested in a simulated browser: no errors.
+- NOT tested: your real Supabase project and real browsers. Please try: create a page, add a section, Publish, open the link.
 
-## Test it yourself (needs Postgres, no Supabase)
-`bash run.sh` builds a stub database from `setup.sql` + this patch, then
-`psql -d t -f tests.sql` runs 64 checks across 2+ websites. Result: all pass.
-This tests the SQL rules. It does NOT test Supabase email/phone/Google provider settings.
-
-## Still on you (cannot be done from code)
-- Supabase -> Auth -> Providers: enable Phone + an SMS provider (Twilio etc.) for +880 login. Enable Google if wanted.
-- Auth -> URL Configuration: add your admin URL to Redirect URLs (needed for password reset).
-- Auth -> Email: set up SMTP (default Supabase mail is rate-limited, not for business).
-- Add each domain in your host (Vercel), then set DNS: CNAME/A to the host + the TXT record shown in Domains.
-- Open signups: anyone can create an account (they see no websites, so no data), and invitations are accepted when the invited person signs up. If you turn signups off, create new users from the Supabase dashboard instead.
+## Known limits (next steps)
+- The top menu on an extra page only lists that page's sections. Add a "Home" link in Menu & header for now. A real menu builder is Step 2.
+- No canonical/Open Graph/social image yet, no templates, no scheduled publish (Steps 2 and 4).
+- Clean addresses like /about need a host rewrite; `?page=about` works everywhere today.
