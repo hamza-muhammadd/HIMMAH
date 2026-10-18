@@ -260,7 +260,7 @@ body.navopen .pf-scrim{opacity:1;pointer-events:auto}
 <div id="swm" class="modal hide" role="dialog" aria-label="Switch website"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Switch website</b><button class="btn gh sm keep" type="button" data-pf="closesw">Close</button></div><p class="hint">You only see websites you are allowed to manage.</p><div id="swlist"></div></div></div>
 <div id="pal" class="modal hide" role="dialog" aria-label="Search"><div class="pal-box"><input id="pal_q" placeholder="Search pages, websites and actions…" autocomplete="off" aria-label="Search"><ul id="pal_l"></ul></div></div>
 <div id="libm" class="modal hide" role="dialog" aria-label="Choose a picture"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Choose a picture</b><button class="btn gh sm" type="button" data-act="libx">Close</button></div><p class="hint" id="libst"></p><div class="mgrid" id="libgrid"></div></div></div>
-<script src="cms.js?v=10"></script>
+<script src="cms.js?v=11"></script>
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)},OLD='BetterEveryday',MOV=CMS.MOV,esc=CMS.esc,BL=CMS.BLANK;
@@ -461,8 +461,8 @@ function render(){
   '<details class="bkrow"><summary><span class="bi">'+svg('build')+'</span><span class="bn">Start from a sample page</span><span class="tg">'+SAMPLES.length+' samples</span></summary><div class="bkb"><p class="hint">A ready-made page with colours and sections. Load one, then replace the words and pictures.</p><div class="adder">'+SAMPLES.map(function(s){return '<button class="at" type="button" data-act="sample" data-id="'+s.id+'"><b>'+s.name+'</b><span>'+s.d+'</span></button>'}).join('')+'</div></div></details>';
  P.build='<div class="rw" style="margin-bottom:14px"><button class="btn gh sm" id="undobtn" type="button" data-act="undo" disabled>↶ Undo</button><button class="btn gh sm" type="button" data-act="discard">Discard draft</button></div>'+adder+'<div id="bkrows"></div>';
  P.brand=card('Business name','Shown next to the logo, in the footer and in the browser tab. Leave it empty to show no name.',plain('b_name','Business name',shown,'Your business name'))+
-  card('Logo','Shown in the menu and footer, and as the tab icon. A PNG with a clear background looks best.',slot('logo','Logo',CL?'The classic template shows its leaf icon until you add a logo.':'No logo yet.')+fld(['logoh','Logo height (px)','n:16:160:2:40'],saved.logoh,'data-x="logoh"'))+
-  card('Search and sharing','',plain('s_title','Browser tab title',saved.title===BL?'':(saved.title||defTitle()),'e.g. My Business · what you do')+plain('s_desc','Search description (what Google shows)',saved.desc||'','One or two sentences about this site',true))+
+  card('Logo','Shown in the menu and footer, and as the tab icon. A PNG with a clear background looks best.',slot('logo','Logo',CL?'The classic template shows its leaf icon until you add a logo.':'No logo yet.')+'<div class="rw" style="margin-top:10px"><button class="btn gh sm" type="button" id="lgcut">Remove white background</button><span class="hint" style="margin:0">Use this if your logo shows a white box around it.</span></div>'+fld(['logoh','Logo height (px)','n:16:160:2:40'],saved.logoh,'data-x="logoh"'))+
+  card('Search and sharing','',plain('s_title','Browser tab title',saved.title===BL?'':(saved.title||defTitle()),'e.g. My Business · what you do')+plain('s_desc','Search description (what Google shows)',saved.desc||'','One or two sentences about this site',true)+slot('ogimg','Sharing picture','Shown when a link is shared. 1200 × 630 works best.')+plain('s_canon','Canonical address (optional)',saved.canon||'','Leave empty: it is set automatically')+'<div class="sr" style="border:0;padding:12px 0 0"><label class="sw"><input type="checkbox" id="s_noindex"'+(saved.noindex==='1'?' checked':'')+'><i></i></label><span class="nm">Ask search engines not to list this page</span></div><div id="seohint" class="hint" aria-live="polite"></div>')+
   card('WhatsApp chat button','A green button that opens WhatsApp. Leave the number empty to hide it.','<div class="g2"><div>'+plain('w_num','WhatsApp number with country code',saved.wa||'','e.g. 15551234567')+'</div><div>'+plain('w_msg','First message',saved.wa_msg||'','e.g. Hi, I have a question')+'</div></div>')+
   card('Account','','<button class="btn gh" type="button" data-act="out">Log out</button>');
  P.theme=card('Colour palette','Tap a palette to start, then fine-tune any colour. "None" keeps the original.','<div class="pals">'+Object.keys(PAL).map(function(k){var p=PAL[k];return '<button class="pal" type="button" data-act="pal" data-n="'+k+'" title="'+k+'">'+['accent','bg','alt','ink','dark'].map(function(c){return '<i style="background:'+p[c]+'"></i>'}).join('')+'</button>'}).join('')+'</div>'+
@@ -499,6 +499,29 @@ function autoMenu(){sync();var h=layout.map(function(t){return B.filter(function
 pgEnsure().then(function(){var b=$('autom');if(!b)return;var n=pgNav(),ph=n.length?'<span class="tg" style="margin:0 6px 6px 0;display:inline-block">Home</span>'+n.map(function(x){return '<span class="tg" style="margin:0 6px 6px 0;display:inline-block">'+esc(x.l)+' <small>(page)</small></span>'}).join(''):'';
   b.innerHTML=(ph+h)||'<p class="hint">Nothing is in the menu yet.</p>'})}
 /* ---------- pictures ---------- */
+function cutBg(d,w,h,tol){var n=w*h,bg=new Uint8Array(n),st=[],lim=255-tol,i,x,y,p;
+ function near(k){var q=k*4;return d[q+3]<8||(d[q]>=lim&&d[q+1]>=lim&&d[q+2]>=lim)}
+ function push(k){if(!bg[k]&&near(k)){bg[k]=1;st.push(k)}}
+ for(x=0;x<w;x++){push(x);push((h-1)*w+x)}for(y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+ while(st.length){i=st.pop();x=i%w;y=(i-x)/w;if(x>0)push(i-1);if(x<w-1)push(i+1);if(y>0)push(i-w);if(y<h-1)push(i+w)}
+ var x0=w,y0=h,x1=-1,y1=-1;
+ for(i=0;i<n;i++){p=i*4;if(bg[i]){d[p+3]=0;continue}x=i%w;y=(i-x)/w;
+  var edge=(x>0&&bg[i-1])||(x<w-1&&bg[i+1])||(y>0&&bg[i-w])||(y<h-1&&bg[i+w]);
+  if(edge){var m=Math.min(d[p],d[p+1],d[p+2]);if(m>lim-40){d[p+3]=Math.round(d[p+3]*Math.max(0,Math.min(1,(255-m)/(tol+40))))}}
+  if(d[p+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+ return x1<0?null:{x0:x0,y0:y0,x1:x1,y1:y1}}
+function logoCut(){var inp=$('im_logo'),u=inp&&inp.value.trim(),st=$('st_logo');if(!u){toast('Upload a logo first.',true);return}
+ var bad=function(m){st.className='hint err';st.textContent=m};st.className='hint';st.textContent='Removing the white background…';
+ var im=new Image();im.crossOrigin='anonymous';
+ im.onload=function(){try{var s=Math.min(1,1600/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*s)),h=Math.max(1,Math.round(im.height*s)),c=document.createElement('canvas');c.width=w;c.height=h;
+   var x=c.getContext('2d');x.drawImage(im,0,0,w,h);var id=x.getImageData(0,0,w,h),bb=cutBg(id.data,w,h,40);
+   if(!bb){bad('Nothing was left after removing white. This picture may be all white.');return}
+   x.putImageData(id,0,0);var cw=bb.x1-bb.x0+1,ch=bb.y1-bb.y0+1,c2=document.createElement('canvas');c2.width=cw;c2.height=ch;c2.getContext('2d').drawImage(c,bb.x0,bb.y0,cw,ch,0,0,cw,ch);
+   c2.toBlob(function(b){if(!b){bad('Could not save the new picture.');return}
+    upFile(new File([b],'logo.png',{type:'image/png'}),'logo').then(function(url){inp.value=url;pv('logo');mark();st.className='hint ok';st.textContent='Done. The white background is gone. Press Publish to publish it.'}).catch(function(e){bad('Upload failed: '+e.message)})},'image/png')}
+  catch(e){bad('Could not read this picture here ('+e.message+'). Upload the file again, then try once more.')}};
+ im.onerror=function(){bad('Could not open this picture.')};im.src=u+(u.indexOf('?')<0?'?':'&')+'cb='+Date.now()}
+document.addEventListener('click',function(e){if(e.target&&e.target.id==='lgcut'){e.preventDefault();logoCut()}});
 function resize(f,max,png){return new Promise(function(res,rej){var im=new Image(),u=URL.createObjectURL(f);
  im.onload=function(){var s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));
   var x=c.getContext('2d');if(!png){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
@@ -540,7 +563,7 @@ function collect(pub){sync();var R={},v=function(i){return $(i)?$(i).value.trim(
  var blocks=B.map(function(bk){var o={};Object.keys(bk).forEach(function(k){o[k]=(k==='items'||k==='items2')?(pub?(bk[k]||[]).filter(nonEmpty):(bk[k]||[])):bk[k]});return o});
  var def_=MOV.map(function(i){return 'L'+i}).join(),ss={};Object.keys(SS).forEach(function(k){if(nonEmpty(SS[k]))ss[k]=SS[k]});
  var lay=(!B.length&&layout.join()===def_)?'':JSON.stringify(layout);
- Object.assign(R,{brand:CL?(b===OLD?'':(b===''?BL:b)):b,classic:CL?'1':'0',hdr_btn:v('hdr_btn'),hdr_url:v('hdr_url'),ftag:v('ftag'),ftext:v('ftext'),flinks:js(pub?L.flinks.filter(nonEmpty):L.flinks),logo:v('im_logo'),logoh:X('logoh'),hero_img:v('im_hero_img')||'',cover_img:v('im_cover_img')||'',title:t===defTitle()?'':(t===''&&defTitle()!==''?BL:t),desc:v('s_desc'),wa:v('w_num'),wa_msg:v('w_msg'),
+ Object.assign(R,{brand:CL?(b===OLD?'':(b===''?BL:b)):b,classic:CL?'1':'0',hdr_btn:v('hdr_btn'),hdr_url:v('hdr_url'),ftag:v('ftag'),ftext:v('ftext'),flinks:js(pub?L.flinks.filter(nonEmpty):L.flinks),logo:v('im_logo'),logoh:X('logoh'),hero_img:v('im_hero_img')||'',cover_img:v('im_cover_img')||'',title:t===defTitle()?'':(t===''&&defTitle()!==''?BL:t),desc:v('s_desc'),ogimg:v('im_ogimg')||'',canon:v('s_canon'),noindex:$('s_noindex')&&$('s_noindex').checked?'1':'',wa:v('w_num'),wa_msg:v('w_msg'),
   theme:Object.keys(readTheme()).length?JSON.stringify(readTheme()):'',accent:'',blocks:js(blocks),layout:lay,order:'',sstyle:Object.keys(ss).length?JSON.stringify(ss):'',hide:js(hid.slice().sort(function(a,b){return a-b})),
   menux:js(pub?L.menux.filter(nonEmpty):L.menux),ctahide:$('m_cta')&&!$('m_cta').checked?'1':'',gumroad:gu,gumroad_all:$('g_all')&&$('g_all').checked?'1':'',
   plans:js(pub?L.plans.filter(function(p){return p.name||p.price}):L.plans),pay:js(pub?L.pay.filter(function(p){return p.name}):L.pay),pay_title:v('pay_title'),pay_note:v('pay_note'),copy_label:v('copy_label'),pay_btn:v('pay_btn'),socials:js(so)});
@@ -562,7 +585,7 @@ function save(){if(!canEditR()){toast('You do not have permission to publish.',t
  .catch(function(e){fail('No connection: '+e.message)})}
 
 /* ---------- pages (multi-page websites) ---------- */
-var PG=null,PGV='',PGG={},PAGEK=['blocks','sstyle','layout','title','desc'],PGLIST=[],PGQ='',PGVER={};
+var PG=null,PGV='',PGG={},PAGEK=['blocks','sstyle','layout','title','desc','ogimg','canon','noindex'],PGLIST=[],PGQ='',PGVER={};
 function pageKeys(m){var o={};PAGEK.forEach(function(k){o[k]=String(m[k]||'')});return o}
 function slugify(t){return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)}
 function pgUrl(slug){return 'index.html?site='+enc(site)+(slug?'&page='+enc(slug):'')+'&t='+Date.now()}
@@ -601,7 +624,7 @@ function newPage(){var t=prompt('Name of the new page (for example: About us)');
  rest('POST','site_pages',{site:site,slug:slug,title:t.slice(0,200),status:'draft',content:{},draft:pageKeys({})},'return=representation').then(pgCall).then(function(j){logEv(site,'page.created',{slug:slug});toast('✓ Page “'+esc(t)+'” created as a draft.');openPage(j[0].id)}).catch(pgFail)}
 function openPage(id){var go_=function(){return CMS.get('site_pages?select=*&id=eq.'+id,token).then(function(rows){var r=rows&&rows[0];if(!r)throw new Error('page not found');return CMS.load(site,token).then(function(glob){
    PG=r;PGV=r.updated_at;gen++;var c=r.draft||r.content||{};
-   var m=Object.assign({},glob,{blocks:'',sstyle:'',layout:'',hide:'',title:'',desc:''},c,{classic:'0'});
+   var m=Object.assign({},glob,{blocks:'',sstyle:'',layout:'',hide:'',title:'',desc:'',ogimg:'',canon:'',noindex:''},c,{classic:'0'});
    DBK={};Object.keys(glob).forEach(function(k){if(glob[k])DBK[k]=1});UNDO=[];REDO=[];LAST=null;OPEN={};autoPaused=false;clearTimeout(dT);clearTimeout(grpT);grpT=null;
    initState(m);render();draftT=0;draftOk=true;dirty=!!r.draft;$('dirty').hidden=!r.draft;
    setSt(r.draft?'Unpublished changes loaded (not published yet)':'');PGG=mapNow();LAST=snap();updateUndo();go('build')})})};
@@ -637,6 +660,15 @@ function renderPgBar(){var old=$('pgbar');if(old)old.remove();if(cur!=='build'&&
  var d=document.createElement('div');d.id='pgbar';d.className='pgbar';
  d.innerHTML=PG?'<span>Editing page: <b>'+esc(PG.title||PG.slug)+'</b> '+pgBadge(PG.status)+'</span><span class="hint" style="margin:0">Brand, colours and menu are shared by the whole website. Change them from Home.</span><button class="btn gh sm" type="button" data-go-pages="1">← All pages</button>':'<span>Editing: <b>Home</b></span><button class="btn gh sm" type="button" data-go-pages="1">All pages</button>';
  pn.parentNode.insertBefore(d,pn);d.querySelector('[data-go-pages]').onclick=function(){go('pages')}}
+function seoCheck(){var h=$('seohint');if(!h)return;var t=(($('s_title')||{}).value||'').trim(),d=(($('s_desc')||{}).value||'').trim(),im=(($('im_ogimg')||{}).value||'').trim(),ni=$('s_noindex')&&$('s_noindex').checked,cn=(($('s_canon')||{}).value||'').trim(),w=[];
+ if(ni)w.push('Search engines are asked NOT to list this page.');
+ if(!t)w.push('Add a tab title (about 30–60 letters).');else if(t.length<20)w.push('The title is short ('+t.length+'). Aim for 30–60 letters.');else if(t.length>65)w.push('The title is long ('+t.length+'). Google may cut it after about 60.');
+ if(!d)w.push('Add a search description (about 70–160 letters).');else if(d.length<50)w.push('The description is short ('+d.length+'). Aim for 70–160.');else if(d.length>170)w.push('The description is long ('+d.length+'). Google may cut it after about 160.');
+ if(!im)w.push('No sharing picture yet.');
+ if(cn&&!/^https?:\/\//i.test(cn))w.push('The canonical address must start with https://');
+ h.className='hint'+(w.length?'':' ok');h.textContent=w.length?w.join(' '):'Search and sharing look good.'}
+document.addEventListener('input',function(e){var i=e.target&&e.target.id;if(i==='s_title'||i==='s_desc'||i==='s_canon'||i==='im_ogimg'||i==='s_noindex')seoCheck()});
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='s_noindex')seoCheck()});
 function pageSave(){clearTimeout(dT);var b=$('save'),pid=PG.id,rows=collect(true),m={};rows.forEach(function(r){m[r.key]=r.value});
  var diff=Object.keys(PGG).filter(function(k){return PAGEK.indexOf(k)<0&&(PGG[k]||'')!==(m[k]||'')});
  if(diff.length&&!confirm('You also changed website-wide settings ('+diff.join(', ')+'). They are NOT saved from a page — open Home to publish them. Publish this page only?'))return;
@@ -862,7 +894,7 @@ function go(id){var ids=TABS.map(function(t){return t[0]});if(ids.indexOf(id)<0|
  var vw=$('view');if(vw)vw.href='index.html?site='+encodeURIComponent(site);
  renderNav();renderSubtabs(n);document.body.classList.remove('navopen');window.scrollTo(0,0);try{history.replaceState(null,'','#/'+id)}catch(e){}
  if(id==='dash')loadDash();else if(id==='websites')loadWebsites();else if(id==='users')loadUsers();else if(id==='domains')loadDomains();else if(id==='activity')loadActivity();
- else if(id==='subs')loadSubs();else if(id==='msgs')loadMsgs();else if(id==='hist')listBk();else if(id==='media')loadMedia();else if(id==='menu')autoMenu();else if(id==='prev')postPrev();else if(id==='pages')loadPages();renderPgBar()}
+ else if(id==='subs')loadSubs();else if(id==='msgs')loadMsgs();else if(id==='hist')listBk();else if(id==='media')loadMedia();else if(id==='menu')autoMenu();else if(id==='prev')postPrev();else if(id==='pages')loadPages();renderPgBar();seoCheck()}
 window.addEventListener('hashchange',function(){var h=location.hash.replace(/^#\/?/,'');if(h&&h!==cur&&!$('app').classList.contains('hide'))go(h)});
 
 /* ---- boot ---- */

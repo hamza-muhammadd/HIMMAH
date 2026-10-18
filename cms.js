@@ -248,6 +248,27 @@ window.CMS = {
       if (!mt) { mt = doc.createElement('meta'); mt.name = 'description'; mt.setAttribute('data-cms', '1'); doc.head.appendChild(mt); }
       mt.content = map.desc;
     }
+    // search & sharing tags (Google reads these; see README about social-app previews)
+    (function () {
+      var head = doc.head;
+      var meta = function (attr, name, val) {
+        var el = doc.querySelector('meta[' + attr + '="' + name + '"]');
+        if (!val) { if (el && el.getAttribute('data-cms')) el.remove(); return; }
+        if (!el) { el = doc.createElement('meta'); el.setAttribute(attr, name); el.setAttribute('data-cms', '1'); head.appendChild(el); }
+        el.setAttribute('content', val);
+      };
+      var abs = function (u) { try { return new URL(u, location.href).href; } catch (e) { return ''; } };
+      var img = map.ogimg ? abs(self.safeUrl(map.ogimg)) : '';
+      var preview = /(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(location.hostname), ps = map.pagecur || '';
+      var canon = map.nf ? '' : map.canon ? abs(self.safeUrl(map.canon)) : (preview ? '' : location.origin + location.pathname.replace(/index\.html$/, '') + (ps ? '?page=' + encodeURIComponent(ps) : ''));
+      meta('property', 'og:title', doc.title); meta('property', 'og:description', map.desc || ''); meta('property', 'og:type', 'website');
+      meta('property', 'og:site_name', brand || ''); meta('property', 'og:image', img); meta('property', 'og:url', canon);
+      meta('name', 'twitter:card', img ? 'summary_large_image' : 'summary');
+      meta('name', 'robots', map.noindex === '1' ? 'noindex,nofollow' : '');
+      var lk = doc.querySelector('link[rel=canonical]');
+      if (canon) { if (!lk) { lk = doc.createElement('link'); lk.rel = 'canonical'; lk.setAttribute('data-cms', '1'); doc.head.appendChild(lk); } lk.href = canon; }
+      else if (lk && lk.getAttribute('data-cms')) lk.remove();
+    })();
     if (classic) self.list(map.hide).forEach(function (i) {
       if (self.BLOCKS[i]) doc.querySelectorAll(self.BLOCKS[i][1]).forEach(function (e) { e.style.display = 'none'; });
     });
@@ -377,10 +398,10 @@ window.CMS = {
   },
   // Site-wide look (brand, theme, menu) stays; the page brings its own sections. Missing page -> clear message.
   mergePage: function (map, row) {
-    var m = Object.assign({}, map, { classic: '0', blocks: '', sstyle: '', layout: '', hide: '' });
+    var m = Object.assign({}, map, { classic: '0', blocks: '', sstyle: '', layout: '', hide: '', canon: '' });
     if (!row) {
       var home = 'index.html' + (/[?&]site=/.test(location.search) ? '?site=' + encodeURIComponent(this.site) : '');
-      m.title = 'Page not found';
+      m.title = 'Page not found'; m.noindex = '1'; m.ogimg = ''; m.desc = ''; m.nf = '1';
       m.blocks = JSON.stringify([{ id: 'nf', type: 'text', al: 'center', title: 'Page not found', sub: 'This page does not exist, or it is not published yet.', btn: 'Go to the home page', url: home }]);
       return m;
     }
@@ -388,6 +409,9 @@ window.CMS = {
     ['blocks', 'sstyle', 'layout'].forEach(function (k) { if (typeof c[k] === 'string' && c[k]) m[k] = c[k]; });
     m.title = (typeof c.title === 'string' && c.title) || row.title || map.title || '';
     if (typeof c.desc === 'string' && c.desc) m.desc = c.desc;
+    m.canon = (typeof c.canon === 'string' && c.canon) || '';
+    m.ogimg = (typeof c.ogimg === 'string' && c.ogimg) || map.ogimg || '';
+    m.noindex = (c.noindex === '1' || map.noindex === '1') ? '1' : '';
     return m;
   }
 };

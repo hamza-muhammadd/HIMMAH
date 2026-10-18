@@ -1,24 +1,37 @@
-# Step 2a - Pages appear in the top menu automatically
+# Step 2b - Logo without white box + SEO (search & sharing)
 
 ## Install (this order)
-1. Supabase -> SQL Editor -> New query -> paste ALL of `menu_m3.sql` -> Run ("Success. No rows returned").
-   (Needs pages_m2.sql from the previous step. It only adds 2 columns and widens one view.)
+1. Supabase -> SQL Editor -> New query -> paste ALL of `seo_m4.sql` -> Run ("Success. No rows returned").
+   (Needs pages_m2.sql and menu_m3.sql from earlier steps. It only widens which fields a page may save.)
 2. Upload `admin.html`, `cms.js`, `index.html`. Hard refresh (Ctrl+Shift+R).
 
-If you upload the files first, nothing breaks: the menu simply shows no pages until the SQL is run.
+## Logo
+- Logo uploads already keep PNG transparency. A white box almost always means the PNG FILE itself has a white background.
+- New button in Brand -> Logo: **Remove white background**. It removes white that touches the picture's edge, softens the edge,
+  trims the empty margin, and saves a clean transparent PNG. White INSIDE your logo (letters, dots) is kept.
+- If your logo is not clear after one try, upload a PNG exported with a transparent background (best result).
+- The logo image on the website now has no background, border or shadow, whatever the file.
+- Works on logos hosted in your storage. If it says it cannot read the picture, upload the file again and retry.
 
-## What you get
-- Every PUBLISHED page appears in the top menu by itself: Home, then your pages, then sections/extra links.
-- The page you are on is highlighted. Home link appears on every page.
-- Pages -> each page now has: "In menu / Not in menu", "Menu name", up/down arrows (order).
-- Menu tab shows exactly what visitors get. The admin preview shows the same menu.
-- Sites with no pages: menu unchanged. Classic-template sites keep their old items; pages are added after them.
+## SEO (per website AND per page)
+Brand -> "Search and sharing" now has: tab title, search description, **sharing picture**, **canonical address** (optional),
+**"don't list this page"**, and live hints (title 30-60 letters, description 70-160, missing picture...).
+- On an extra page these fields belong to THAT page (empty picture = the website's picture; canonical is never copied).
+- The website adds: description, og:title/description/image/url, twitter card, canonical link, robots noindex when asked.
+- Canonical is automatic on your real domain. It is skipped on *.vercel.app / localhost previews.
+- A page that does not exist says "Page not found" and asks search engines not to list it.
+
+## Important limit (honest)
+Your site builds each page in the browser. Google runs that code, so title/description/canonical work.
+WhatsApp, Telegram, Facebook and X do NOT run it, so link previews with the sharing picture will not show for them yet.
+Fixing that needs a small server step (Vercel function that pre-fills the tags). That is a good next step. No sitemap.xml yet either.
 
 ## Tested
-- 62 database checks (menu flag, label length, order, visitors, editor/viewer/other-site) + earlier 64: all pass.
-- Public menu in a simulated browser: home, sub-page (highlight), real domain, classic site, no pages, database without the new SQL.
-- Admin buttons (toggle, move, menu name) and Menu tab: no errors.
-- NOT tested: your real Supabase and real phones. Please try it.
+- 67 database checks (+ earlier 64): all pass.
+- White-background remover on a synthetic logo (corners, body, inner white dot, soft edge, crop, all-white picture).
+- SEO tags on home, page with own SEO + noindex, inherited picture, preview host, missing page.
+- Admin: SEO fields, live hints, noindex warning, logo button safe with no logo; earlier pages/menu tests still pass.
+- NOT tested: real photos with complex backgrounds, your real Supabase, real browsers.
 
 ## Next
-Step 2b: nested (dropdown) menus + custom order of Home/sections, then SEO fields (canonical, Open Graph).
+Dropdown (nested) menus, Home/section order, then the server step for social previews + sitemap.
