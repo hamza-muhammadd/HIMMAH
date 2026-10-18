@@ -344,8 +344,34 @@ window.CMS = {
     var self = this;
     return Promise.all([this.get('domain_map?select=hostname,site,is_primary'), this.get('public_sites?select=slug&order=created_at')]).then(function (r) {
       self.site = self.pick(Array.isArray(r[0]) ? r[0] : [], Array.isArray(r[1]) ? r[1] : []);
-      return self.site ? self.load(self.site) : {};
+      if (!self.site) return {};
+      var ps = self.pageSlug();
+      return self.load(self.site).then(function (map) {
+        if (!ps) return map;
+        return self.get('public_pages?select=title,content&site=eq.' + encodeURIComponent(self.site) + '&slug=eq.' + encodeURIComponent(ps))
+          .then(function (rows) { return self.mergePage(map, Array.isArray(rows) ? rows[0] : null); });
+      });
     });
+  },
+  // Which extra page was asked for? Only ?page=slug (safe on every host).
+  pageSlug: function () {
+    var q = ''; try { q = (new URLSearchParams(location.search).get('page') || '').toLowerCase(); } catch (e) { }
+    return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(q) && q.length <= 60 ? q : '';
+  },
+  // Site-wide look (brand, theme, menu) stays; the page brings its own sections. Missing page -> clear message.
+  mergePage: function (map, row) {
+    var m = Object.assign({}, map, { classic: '0', blocks: '', sstyle: '', layout: '', hide: '' });
+    if (!row) {
+      var home = 'index.html' + (/[?&]site=/.test(location.search) ? '?site=' + encodeURIComponent(this.site) : '');
+      m.title = 'Page not found';
+      m.blocks = JSON.stringify([{ id: 'nf', type: 'text', al: 'center', title: 'Page not found', sub: 'This page does not exist, or it is not published yet.', btn: 'Go to the home page', url: home }]);
+      return m;
+    }
+    var c = row.content || {};
+    ['blocks', 'sstyle', 'layout'].forEach(function (k) { if (typeof c[k] === 'string' && c[k]) m[k] = c[k]; });
+    m.title = (typeof c.title === 'string' && c.title) || row.title || map.title || '';
+    if (typeof c.desc === 'string' && c.desc) m.desc = c.desc;
+    return m;
   }
 };
 

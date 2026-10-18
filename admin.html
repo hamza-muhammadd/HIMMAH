@@ -181,7 +181,7 @@ body.navopen .pf-scrim{opacity:1;pointer-events:auto}
 .mi img{width:100%;height:100px;object-fit:cover;display:block;background:var(--bg)}.mi>div{padding:8px 10px;font-size:12px;color:var(--mute);word-break:break-all}.mi .rw{padding:0 10px 10px}
 .libpick{cursor:pointer}.libpick:hover{border-color:var(--g)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;display:grid;place-items:center;padding:16px}.mbox{background:var(--pn);border-radius:16px;padding:20px;max-width:780px;width:100%;max-height:82vh;overflow:auto}
-</style>
+.pgb{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--line);margin-left:6px}.pgb-published{color:var(--ok);border-color:var(--ok)}.pgb-draft{color:var(--mute)}.pgb-archived{color:var(--bad);border-color:var(--bad)}.pgrow{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.pgrow .rw .btn{margin:0}.pgver{flex-basis:100%;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px}.pgbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--pn);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 14px}.pgbar .btn{margin:0}@media(prefers-reduced-motion:no-preference){.panel{animation:pnin .22s ease-out}@keyframes pnin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}}</style>
 </head>
 <body>
 <div id="login">
@@ -260,7 +260,7 @@ body.navopen .pf-scrim{opacity:1;pointer-events:auto}
 <div id="swm" class="modal hide" role="dialog" aria-label="Switch website"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Switch website</b><button class="btn gh sm keep" type="button" data-pf="closesw">Close</button></div><p class="hint">You only see websites you are allowed to manage.</p><div id="swlist"></div></div></div>
 <div id="pal" class="modal hide" role="dialog" aria-label="Search"><div class="pal-box"><input id="pal_q" placeholder="Search pages, websites and actions…" autocomplete="off" aria-label="Search"><ul id="pal_l"></ul></div></div>
 <div id="libm" class="modal hide" role="dialog" aria-label="Choose a picture"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Choose a picture</b><button class="btn gh sm" type="button" data-act="libx">Close</button></div><p class="hint" id="libst"></p><div class="mgrid" id="libgrid"></div></div></div>
-<script src="cms.js?v=9"></script>
+<script src="cms.js?v=10"></script>
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)},OLD='BetterEveryday',MOV=CMS.MOV,esc=CMS.esc,BL=CMS.BLANK;
@@ -487,6 +487,7 @@ function render(){
  P.hist=card('Undo and discard','Undo steps inside the Page builder, or throw away everything since your last save.','<div class="rw"><button class="btn gh sm" type="button" data-act="undo">↶ Undo last step</button><button class="btn gh sm" type="button" data-act="discard">Discard draft</button></div>')+card('Restore points','A copy of the site is kept automatically every time you press Publish (the last 25 are kept). Restore any of them.','<div class="rw"><button class="btn sm" type="button" data-act="bkmake">Save a restore point now</button></div><div id="bkbox"></div>')+card('Start over','','<p class="d">Clear everything on this site and start again from a blank page. A restore point is made first.</p><div class="rw"><button class="btn dg" type="button" data-act="resetsite">Reset this site</button></div>');
  P.dash='<div id="dashbox"></div>';P.websites='<div id="webbox"></div>';P.users='<div id="usersbox"></div>';P.roles=rolesHTML();P.domains='<div id="dombox"></div>';P.activity='<div id="actbox"></div>';
  P.prev='<div class="rw" style="margin-bottom:12px"><button class="btn gh sm" type="button" data-act="dev" data-w="390px">Phone</button><button class="btn gh sm" type="button" data-act="dev" data-w="820px">Tablet</button><button class="btn gh sm" type="button" data-act="dev" data-w="100%">Desktop</button><button class="btn sm" type="button" data-act="prefresh">Refresh preview</button></div><div class="pvwrap"><iframe id="pvf" title="Page preview" style="width:390px" src="index.html?site='+encodeURIComponent(site)+'&preview=1"></iframe></div><p class="hint">This shows your unsaved changes. Press Publish to publish them.</p>';
+ P.pages='<div id="pgbox"><p class="hint">Loading…</p></div>';
  $('panels').innerHTML=TABS.map(function(t){return '<section class="panel hide" id="pn_'+t[0]+'">'+P[t[0]]+'</section>'}).join('');
  renderBuilder();['plans','pay','menux','flinks'].forEach(lrender);CMS.list(saved.socials).forEach(socRow);
  ['logo'].forEach(pv);ghint();$('pvf').addEventListener('load',postPrev)}
@@ -546,7 +547,7 @@ function collect(pub){sync();var R={},v=function(i){return $(i)?$(i).value.trim(
 function defTitle(){return CL?CMS.CLASSIC_TITLE.split(OLD).join(shown):''}
 function mapNow(){var m={};collect().forEach(function(r){m[r.key]=r.value});return m}
 function postPrev(){var f=$('pvf');if(!f||!f.contentWindow)return;try{f.contentWindow.postMessage({be:'preview',map:mapNow()},location.origin)}catch(e){}}
-function save(){if(!canEditR()){toast('You do not have permission to publish.',true);return}clearTimeout(dT);var rows=collect(true),b=$('save');b.disabled=true;b.textContent='Publishing…';
+function save(){if(!canEditR()){toast('You do not have permission to publish.',true);return}if(PG)return pageSave();clearTimeout(dT);var rows=collect(true),b=$('save');b.disabled=true;b.textContent='Publishing…';
  var done=function(){b.disabled=false;b.textContent='Publish'},fail=function(t){toast(t,true,true);done()};
  makeBk().catch(function(){}).then(function(){return rest('POST','site_content?on_conflict=site,key',rows,'resolution=merge-duplicates,return=representation')})
  .then(function(r){return rj(r).then(function(j){
@@ -558,6 +559,89 @@ function save(){if(!canEditR()){toast('You do not have permission to publish.',t
    rows.forEach(function(x){saved[x.key]=x.value;if(x.value)DBK[x.key]=1});dirty=false;$('dirty').hidden=true;dropDraft();draftOk=true;setSt('All changes published');logEv(site,'site.published',{});
    toast('✓ Published and checked.<a href="index.html?site='+encodeURIComponent(site)+'&t='+Date.now()+'" target="_blank">Open page</a>');done()})})})
  .catch(function(e){fail('No connection: '+e.message)})}
+
+/* ---------- pages (multi-page websites) ---------- */
+var PG=null,PGV='',PGG={},PAGEK=['blocks','sstyle','layout','title','desc'],PGLIST=[],PGQ='',PGVER={};
+function pageKeys(m){var o={};PAGEK.forEach(function(k){o[k]=String(m[k]||'')});return o}
+function slugify(t){return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)}
+function pgUrl(slug){return 'index.html?site='+enc(site)+(slug?'&page='+enc(slug):'')+'&t='+Date.now()}
+function pgBadge(s){return '<span class="pgb pgb-'+s+'">'+(s==='published'?'Published':s==='archived'?'Archived':'Draft')+'</span>'}
+function pgFail(e){toast('Could not do that: '+(e&&e.message||e),true,true)}
+function pgCall(r){return rj(r).then(function(j){if(!r.ok)throw new Error((j&&j.message)||('error '+r.status));return j})}
+function loadPages(){var box=$('pgbox');if(!box)return;var g=gen;box.innerHTML='<p class="hint">Loading pages…</p>';
+ CMS.get('site_pages?select=id,slug,title,status,updated_at,published_at,draft&site=eq.'+enc(site)+'&order=sort,created_at',token).then(function(rows){
+  if(g!==gen)return;if(!Array.isArray(rows))throw new Error((rows&&rows.message)||'could not load pages (run pages_m2.sql in Supabase)');PGLIST=rows;drawPages()})
+ .catch(function(e){box.innerHTML='<p class="hint err">'+esc(e.message)+'</p>'})}
+function drawPages(){var box=$('pgbox');if(!box)return;var can=canEditR(),q=PGQ.trim().toLowerCase();
+ var homeLive=Object.keys(DBK||{}).length>0;
+ var rows=PGLIST.filter(function(p){return !q||(p.title+' '+p.slug).toLowerCase().indexOf(q)>-1});
+ var home=(!q||'home'.indexOf(q)>-1)?'<div class="mg pgrow"><div><b>Home</b> '+pgBadge(homeLive?'published':'draft')+'<div class="hint">Main page of this website · <code>index.html</code></div></div><div class="rw"><button class="btn sm" type="button" data-pg="edithome">Edit</button><a class="btn gh sm" href="'+esc(pgUrl(''))+'" target="_blank" rel="noopener">View</a></div></div>':'';
+ var list=rows.map(function(p){var ver=PGVER[p.id];
+  return '<div class="mg pgrow"><div><b>'+esc(p.title||p.slug)+'</b> '+pgBadge(p.status)+(p.draft?' <span class="pgb pgb-draft">Unpublished changes</span>':'')+'<div class="hint">/'+esc(p.slug)+' · edited '+esc(new Date(p.updated_at).toLocaleString())+'</div></div>'+
+  '<div class="rw">'+(can?'<button class="btn sm" type="button" data-pg="edit" data-id="'+p.id+'">Edit</button>':'')+
+  (p.status==='published'?'<a class="btn gh sm" href="'+esc(pgUrl(p.slug))+'" target="_blank" rel="noopener">View</a>':'')+
+  (can&&p.status!=='published'?'<button class="btn gh sm" type="button" data-pg="publish" data-id="'+p.id+'">Publish</button>':'')+
+  (can&&p.status==='published'?'<button class="btn gh sm" type="button" data-pg="unpublish" data-id="'+p.id+'">Unpublish</button>':'')+
+  (can?'<button class="btn gh sm" type="button" data-pg="dup" data-id="'+p.id+'">Duplicate</button>':'')+
+  (can?'<button class="btn gh sm" type="button" data-pg="ver" data-id="'+p.id+'">Versions</button>':'')+
+  (canManageR()?'<button class="btn dg sm" type="button" data-pg="del" data-id="'+p.id+'">Delete</button>':'')+'</div>'+
+  (ver?'<div class="pgver">'+(ver.length?ver.map(function(v){return '<div class="rw" style="justify-content:space-between"><span class="hint" style="margin:0">'+esc(new Date(v.created_at).toLocaleString())+'</span><button class="btn gh sm" type="button" data-pg="restore" data-id="'+p.id+'" data-vid="'+v.id+'">Restore as draft</button></div>'}).join(''):'<p class="hint">No earlier versions yet. One is saved every time you publish.</p>')+'</div>':'')+'</div>'}).join('');
+ var empty=!PGLIST.length&&!q?'<p class="hint">No extra pages yet. Use “New page” to add About, Contact, Courses… Each page has its own address and its own draft.</p>':(q&&!rows.length?'<p class="hint">No page matches “'+esc(PGQ)+'”.</p>':'');
+ box.innerHTML='<div class="card"><div class="rw" style="justify-content:space-between"><div class="rw" style="flex:1"><input id="pgq" type="search" placeholder="Search pages…" aria-label="Search pages" value="'+esc(PGQ)+'" style="max-width:320px"></div>'+(can?'<button class="btn" type="button" data-pg="new" style="width:auto;margin:0">+ New page</button>':'')+'</div>'+home+list+empty+'</div>';
+ var qi=$('pgq');if(qi&&PGQ){qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length)}}
+function uniqueSlug(base){var s=base||'page',n=2,have=PGLIST.map(function(p){return p.slug});var out=s;while(have.indexOf(out)>-1||out==='home'||out==='index'||out==='admin'||out==='classic'||out==='api'||out==='assets'){out=s+'-'+(n++)}return out.slice(0,60)}
+function newPage(){var t=prompt('Name of the new page (for example: About us)');if(t===null)return;t=t.trim();if(!t){toast('Please type a name.',true);return}
+ var slug=uniqueSlug(slugify(t));
+ rest('POST','site_pages',{site:site,slug:slug,title:t.slice(0,200),status:'draft',content:{},draft:pageKeys({})},'return=representation').then(pgCall).then(function(j){logEv(site,'page.created',{slug:slug});toast('✓ Page “'+esc(t)+'” created as a draft.');openPage(j[0].id)}).catch(pgFail)}
+function openPage(id){var go_=function(){return CMS.get('site_pages?select=*&id=eq.'+id,token).then(function(rows){var r=rows&&rows[0];if(!r)throw new Error('page not found');return CMS.load(site,token).then(function(glob){
+   PG=r;PGV=r.updated_at;gen++;var c=r.draft||r.content||{};
+   var m=Object.assign({},glob,{blocks:'',sstyle:'',layout:'',hide:'',title:'',desc:''},c,{classic:'0'});
+   DBK={};Object.keys(glob).forEach(function(k){if(glob[k])DBK[k]=1});UNDO=[];REDO=[];LAST=null;OPEN={};autoPaused=false;clearTimeout(dT);clearTimeout(grpT);grpT=null;
+   initState(m);render();draftT=0;draftOk=true;dirty=!!r.draft;$('dirty').hidden=!r.draft;
+   setSt(r.draft?'Unpublished changes loaded (not published yet)':'');PGG=mapNow();LAST=snap();updateUndo();go('build')})})};
+ var pre=(dirty&&canEditR())?saveDraft():Promise.resolve();
+ return pre.then(go_).catch(pgFail)}
+function editHome(){var pre=(dirty&&canEditR())?saveDraft():Promise.resolve();pre.then(function(){return loadSite()}).then(function(){go('build')}).catch(pgFail)}
+function pgAction(a,id,el){var p=PGLIST.filter(function(x){return x.id===id})[0];
+ if(a==='new')return newPage();if(a==='edithome')return editHome();if(a==='edit')return openPage(id);
+ if(!p)return;
+ if(a==='publish'){rest('POST','rpc/publish_page',{p_id:id,p_content:p.draft||pageKeys({})}).then(pgCall).then(function(){toast('✓ “'+esc(p.title||p.slug)+'” is published.');loadPages()}).catch(pgFail)}
+ else if(a==='unpublish'){if(!confirm('Hide “'+(p.title||p.slug)+'” from visitors? It is kept as a draft and can be published again.'))return;
+  rest('POST','rpc/unpublish_page',{p_id:id}).then(pgCall).then(function(){toast('Page is hidden from visitors.');loadPages()}).catch(pgFail)}
+ else if(a==='dup'){CMS.get('site_pages?select=title,draft,content&id=eq.'+id,token).then(function(rows){var r=rows&&rows[0];if(!r)throw new Error('page not found');var slug=uniqueSlug(slugify(p.slug+'-copy'));
+  return rest('POST','site_pages',{site:site,slug:slug,title:((r.title||p.slug)+' (copy)').slice(0,200),status:'draft',content:{},draft:r.draft||r.content||pageKeys({})},'return=minimal').then(pgCall).then(function(){toast('✓ Copy created as a draft.');loadPages()})}).catch(pgFail)}
+ else if(a==='del'){if(!confirm('Delete “'+(p.title||p.slug)+'” for good? Its address will stop working. This cannot be undone.'))return;
+  rest('DELETE','site_pages?id=eq.'+id,null,'return=representation').then(pgCall).then(function(j){if(!j.length)throw new Error('not allowed');logEv(site,'page.deleted',{slug:p.slug});toast('Page deleted.');loadPages()}).catch(pgFail)}
+ else if(a==='ver'){if(PGVER[id]){delete PGVER[id];drawPages();return}
+  CMS.get('page_versions?select=id,created_at&page_id=eq.'+id+'&order=created_at.desc',token).then(function(v){if(!Array.isArray(v))throw new Error((v&&v.message)||'could not load versions');PGVER[id]=v;drawPages()}).catch(pgFail)}
+ else if(a==='restore'){if(!confirm('Use this earlier version as the new draft? The published page does not change until you publish.'))return;
+  CMS.get('page_versions?select=content&id=eq.'+el.dataset.vid,token).then(function(v){if(!v||!v[0])throw new Error('version not found');
+   return rest('PATCH','site_pages?id=eq.'+id,{draft:v[0].content},'return=minimal').then(pgCall).then(function(){toast('✓ Restored as a draft. Open Edit to continue.');delete PGVER[id];loadPages()})}).catch(pgFail)}}
+document.addEventListener('click',function(e){var el=e.target.closest&&e.target.closest('[data-pg]');if(!el)return;e.preventDefault();pgAction(el.dataset.pg,el.dataset.id,el)});
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='pgq'){PGQ=e.target.value;drawPages()}});
+function renderPgBar(){var old=$('pgbar');if(old)old.remove();if(cur!=='build'&&cur!=='prev')return;var pn=$('panels');if(!pn)return;
+ var d=document.createElement('div');d.id='pgbar';d.className='pgbar';
+ d.innerHTML=PG?'<span>Editing page: <b>'+esc(PG.title||PG.slug)+'</b> '+pgBadge(PG.status)+'</span><span class="hint" style="margin:0">Brand, colours and menu are shared by the whole website. Change them from Home.</span><button class="btn gh sm" type="button" data-go-pages="1">← All pages</button>':'<span>Editing: <b>Home</b></span><button class="btn gh sm" type="button" data-go-pages="1">All pages</button>';
+ pn.parentNode.insertBefore(d,pn);d.querySelector('[data-go-pages]').onclick=function(){go('pages')}}
+function pageSave(){clearTimeout(dT);var b=$('save'),pid=PG.id,rows=collect(true),m={};rows.forEach(function(r){m[r.key]=r.value});
+ var diff=Object.keys(PGG).filter(function(k){return PAGEK.indexOf(k)<0&&(PGG[k]||'')!==(m[k]||'')});
+ if(diff.length&&!confirm('You also changed website-wide settings ('+diff.join(', ')+'). They are NOT saved from a page — open Home to publish them. Publish this page only?'))return;
+ var pm=pageKeys(m);b.disabled=true;b.textContent='Publishing…';
+ var done=function(){b.disabled=false;b.textContent='Publish'},fail=function(t){toast(t,true,true);done()};
+ rest('POST','rpc/publish_page',{p_id:pid,p_content:pm}).then(function(r){return rj(r).then(function(j){
+  if(r.status===401){fail('Session expired. Log out and log in again.');return}
+  if(!r.ok){fail('Could not publish: '+((j&&j.message)||r.status)+' (run pages_m2.sql)');return}
+  return CMS.get('site_pages?select=*&id=eq.'+pid,token).then(function(x){var p=x&&x[0];
+   if(!p||p.status!=='published'||PAGEK.some(function(k){return String((p.content||{})[k]||'')!==pm[k]})){fail('Published, but reading it back failed. Please check the page.');return}
+   if(!PG||PG.id!==pid){done();return}PG=p;PGV=p.updated_at;dirty=false;$('dirty').hidden=true;draftOk=true;setSt('Page published');renderPgBar();
+   toast('✓ Published and checked.<a href="'+esc(pgUrl(p.slug))+'" target="_blank">Open page</a>');done()})})}).catch(function(e){fail('No connection: '+e.message)})}
+function pageDraft(){clearTimeout(dT);if(!token||!PG)return Promise.resolve();setSt('Saving draft…');var pid=PG.id,body={draft:pageKeys(mapNow())};
+ return rest('PATCH','site_pages?id=eq.'+pid+'&updated_at=eq.'+enc(PGV),body,'return=representation').then(function(r){return rj(r).then(function(j){
+  if(!PG||PG.id!==pid)return;if(!r.ok)throw new Error((j&&j.message)||r.status);
+  if(!Array.isArray(j)||!j.length){if(!confirm('This page was changed in another window. Overwrite it with the version in this window?')){autoPaused=true;setSt('Autosave paused: the page changed elsewhere.',true);return}
+   return CMS.get('site_pages?select=updated_at&id=eq.'+pid,token).then(function(x){if(x&&x[0]){PGV=x[0].updated_at;return pageDraft()}})}
+  PGV=j[0].updated_at;PG.draft=body.draft;draftOk=true;setSt('Draft saved '+new Date().toLocaleTimeString())})})
+ .catch(function(e){setSt('Autosave failed ('+e.message+'). Retrying…',true);clearTimeout(dT);dT=setTimeout(pageDraft,5000)})}
 
 /* ---------- media library ---------- */
 function mediaURL(n){return CMS.url+'/storage/v1/object/public/site-images/'+site+'/'+n}
@@ -585,14 +669,14 @@ function snap(){return mapNow()}
 function pushUndo(){}
 function updateUndo(){var u=$('undobtn'),r=$('redobtn');if(u)u.disabled=!UNDO.length;if(r)r.disabled=!REDO.length}
 function schedDraft(){if(!canEditR())return;draftOk=false;setSt('Unsaved…');clearTimeout(dT);if(autoPaused)return;dT=setTimeout(saveDraft,1500)}
-function saveDraft(){clearTimeout(dT);if(!token)return Promise.resolve();setSt('Saving draft…');var DR=encodeURIComponent(site+'~draft');
+function saveDraft(){if(PG)return pageDraft();clearTimeout(dT);if(!token)return Promise.resolve();setSt('Saving draft…');var DR=encodeURIComponent(site+'~draft');
  return CMS.get('site_content?select=value&site=eq.'+DR+'&key=eq.state',token).then(function(r){
   var rt=0;try{rt=r&&r[0]?JSON.parse(r[0].value).t:0}catch(e){}
   if(rt&&draftT&&rt!==draftT&&!confirm('This draft was changed in another window. Overwrite it with the version in this window?')){autoPaused=true;setSt('Autosave paused: the draft changed elsewhere.',true);return}
   var t=Date.now(),m=mapNow();
   return rest('POST','site_content?on_conflict=site,key',[{site:site+'~draft',key:'state',value:JSON.stringify({t:t,map:m})}],'resolution=merge-duplicates,return=minimal').then(function(x){if(!x.ok)throw new Error(x.status);draftT=t;draftOk=true;setSt('Draft saved '+new Date(t).toLocaleTimeString())})})
  .catch(function(e){setSt('Autosave failed ('+e.message+'). Retrying…',true);clearTimeout(dT);dT=setTimeout(saveDraft,5000)})}
-function dropDraft(){clearTimeout(dT);draftT=0;return rest('DELETE','site_content?site=eq.'+encodeURIComponent(site+'~draft')+'&key=eq.state').catch(function(){})}
+function dropDraft(){if(PG)return Promise.resolve();clearTimeout(dT);draftT=0;return rest('DELETE','site_content?site=eq.'+encodeURIComponent(site+'~draft')+'&key=eq.state').catch(function(){})}
 function setThemeForm(o){['accent','bg','alt','ink','dark'].forEach(function(k){var e=document.querySelector('[data-x="t_'+k+'"]');if(!e)return;var h=e.parentNode.querySelector('.hint');
  if(o[k]){e.value=o[k];e.removeAttribute('data-empty');if(h)h.textContent=o[k]}else{e.value='#ffffff';e.setAttribute('data-empty','1');if(h)h.textContent='Not set'}})}
 function initState(m){saved=Object.assign({},m);hid=CMS.list(m.hide).map(Number);B=CMS.list(m.blocks).filter(function(b){return b&&b.id&&BT[b.type]});SS=CMS.obj(m.sstyle);T=CMS.obj(m.theme);if(!T.accent&&CMS.col(m.accent))T.accent=m.accent;
@@ -635,14 +719,14 @@ IC.home='<path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>';IC.
 IC.shield='<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>';IC.cloud='<path d="M7 18a4.500 4.500 0 01-.5-9A6 6 0 0118 10a4 4 0 010 8z"/>';
 IC.cog='<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>';IC.plus='<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>';IC.upload='<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>';IC.check='<path d="M5 12l5 5 9-10"/>';IC.user='<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.500-6 8-6s8 2 8 6"/>';IC.act='<path d="M3 12h4l3-8 4 16 3-8h4"/>';
 var TABS=[['dash','Dashboard','Dashboard',''],['websites','Websites','Websites','Every website you can manage from this one panel.'],['users','Admins & Users','Admins & Users','Who can work on each website, and what they may do.'],['roles','Roles & Permissions','Roles & Permissions','What each role can and cannot do. The database enforces these rules.'],['domains','Domains & Hosting','Domains & Hosting','Connect domains to websites and check they are set up correctly.'],
-['build','Page builder','Pages & Content','Add, move and style every section. Tap a section to open it.'],['prev','Live preview','Pages & Content','Phone, tablet or desktop view of your unsaved changes.'],['msgs','Messages','Pages & Content','Messages people sent from your contact form.'],['subs','Subscribers','Pages & Content','Emails collected from signup boxes on this website.'],
+['pages','Pages','Pages & Content','Create, edit, publish and manage every page of this website.'],['build','Page builder','Pages & Content','Add, move and style every section. Tap a section to open it.'],['prev','Live preview','Pages & Content','Phone, tablet or desktop view of your unsaved changes.'],['msgs','Messages','Pages & Content','Messages people sent from your contact form.'],['subs','Subscribers','Pages & Content','Emails collected from signup boxes on this website.'],
 ['brand','Brand & logo','Website Design','Change the name, logo, search text and contact button.'],['theme','Theme & colours','Website Design','Pick colours, fonts, button style and animation.'],['menu','Menu & header','Website Design','Choose what appears in the top menu and the footer.'],
 ['media','Media library','Media Library','Every picture uploaded for this website. Reuse, copy a link, or delete safely.'],
 ['soc','Social channels','Settings','Add your channels. They show as icons in the footer.'],['price','Pricing & payments','Settings','Plans and payment methods for the classic pricing section.'],['hist','History & reset','Settings','Go back to an earlier version, or start over.'],['activity','Activity Logs','Activity Logs','What happened on your websites, and who did it.']];
-var NEED={dash:'view',websites:'view',users:'manage',roles:'view',domains:'view',build:'view',prev:'view',msgs:'edit',subs:'edit',brand:'view',theme:'view',menu:'view',media:'view',soc:'view',price:'view',hist:'edit',activity:'manage'};
+var NEED={pages:'view',dash:'view',websites:'view',users:'manage',roles:'view',domains:'view',build:'view',prev:'view',msgs:'edit',subs:'edit',brand:'view',theme:'view',menu:'view',media:'view',soc:'view',price:'view',hist:'edit',activity:'manage'};
 var EDIT=['build','prev','brand','theme','menu','soc','price','hist'];
 var NAV=[{id:'dash',l:'Dashboard',i:'home',tabs:['dash']},{g:'PLATFORM'},{id:'websites',l:'Websites',i:'sites',tabs:['websites']},{id:'users',l:'Admins & Users',i:'users',tabs:['users']},{id:'roles',l:'Roles & Permissions',i:'shield',tabs:['roles']},{id:'domains',l:'Domains & Hosting',i:'cloud',tabs:['domains']},{id:'mediaP',l:'Media Library',i:'media',tabs:['media']},
- {g:'WEBSITE MANAGEMENT'},{id:'content',l:'Pages & Content',i:'text',tabs:['build','prev','msgs','subs']},{id:'design',l:'Website Design',i:'theme',tabs:['brand','theme','menu']},{id:'settings',l:'Settings',i:'cog',tabs:['soc','price','hist']},{id:'activity',l:'Activity Logs',i:'act',tabs:['activity']}];
+ {g:'WEBSITE MANAGEMENT'},{id:'content',l:'Pages & Content',i:'text',tabs:['pages','build','prev','msgs','subs']},{id:'design',l:'Website Design',i:'theme',tabs:['brand','theme','menu']},{id:'settings',l:'Settings',i:'cog',tabs:['soc','price','hist']},{id:'activity',l:'Activity Logs',i:'act',tabs:['activity']}];
 function roleOf(s){var w=sites.filter(function(x){return x.slug===s})[0];return CTX&&CTX.is_platform?'platform':(w?w.role:null)}
 function isPlat(){return ROLE==='platform'}
 function canEditR(){return ['platform','owner','admin','editor'].indexOf(ROLE)>-1}
@@ -764,7 +848,7 @@ function go(id){var ids=TABS.map(function(t){return t[0]});if(ids.indexOf(id)<0|
  var vw=$('view');if(vw)vw.href='index.html?site='+encodeURIComponent(site);
  renderNav();renderSubtabs(n);document.body.classList.remove('navopen');window.scrollTo(0,0);try{history.replaceState(null,'','#/'+id)}catch(e){}
  if(id==='dash')loadDash();else if(id==='websites')loadWebsites();else if(id==='users')loadUsers();else if(id==='domains')loadDomains();else if(id==='activity')loadActivity();
- else if(id==='subs')loadSubs();else if(id==='msgs')loadMsgs();else if(id==='hist')listBk();else if(id==='media')loadMedia();else if(id==='menu')autoMenu();else if(id==='prev')postPrev()}
+ else if(id==='subs')loadSubs();else if(id==='msgs')loadMsgs();else if(id==='hist')listBk();else if(id==='media')loadMedia();else if(id==='menu')autoMenu();else if(id==='prev')postPrev();else if(id==='pages')loadPages();renderPgBar()}
 window.addEventListener('hashchange',function(){var h=location.hash.replace(/^#\/?/,'');if(h&&h!==cur&&!$('app').classList.contains('hide'))go(h)});
 
 /* ---- boot ---- */
@@ -779,7 +863,7 @@ function boot(){var h=location.hash||'';
  token=sess.access_token;authView('busy');
  (sess.expires_at*1000-Date.now()<30000?refreshSession():Promise.resolve(true)).then(function(ok){if(!ok)return;schedRefresh();afterLogin()})}
 
-function loadSite(){var DR=enc(site+'~draft');gen++;
+function loadSite(){PG=null;var DR=enc(site+'~draft');gen++;
  return Promise.all([CMS.load(site,token),CMS.get('site_content?select=value&site=eq.'+DR+'&key=eq.state',token).catch(function(){return []})]).then(function(rs){
   var m=rs[0],dr=null;try{dr=Array.isArray(rs[1])&&rs[1][0]?JSON.parse(rs[1][0].value):null}catch(e){}
   DBK={};Object.keys(m).forEach(function(k){if(m[k])DBK[k]=1});
