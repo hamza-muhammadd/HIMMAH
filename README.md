@@ -1,27 +1,24 @@
-# Step 2c - Dropdown menus
+# Step 2d - Look & feel polish (no SQL this time)
 
-## Install (this order)
-1. Supabase -> SQL Editor -> New query -> paste ALL of `dropdown_m5.sql` -> Run ("Success. No rows returned").
-   (Needs the earlier SQL files. It adds one column, one safety rule, and widens one view.)
-2. Upload `admin.html`, `cms.js`, `index.html`. Hard refresh (Ctrl+Shift+R).
+## Install
+Upload `admin.html` and `index.html` (`cms.js` is unchanged but included). Hard refresh (Ctrl+Shift+R). No Supabase step.
 
-## How to use
-Admin -> Pages -> on a page press **Under…** -> type the number of the parent page (0 = normal menu item).
-The parent shows a small arrow and opens a dropdown with its sub-pages (hover/keyboard on computers; indented list inside the phone menu).
-The parent stays highlighted while you are on one of its sub-pages. Order inside the dropdown follows the ↑ ↓ order.
+## Public menu / dropdown
+- Dropdown fades and slides in (0.16s), has padding, rounded hover rows, an active row, and a rotating arrow.
+- Keyboard: Tab opens it, Escape closes it. Clear focus outline.
+- Touch tablets (wider than 900px): first tap opens the dropdown, second tap opens the page.
+- Phone: sub-pages are grouped under the parent with a guide line and calmer text; the menu scrolls if it is long.
+- The dropdown opens from the right edge for the last two items so it never goes off screen.
+- Respects "reduce motion".
 
-## Rules (enforced by the database, not only the screen)
-- One level only (no dropdown inside a dropdown).
-- The parent must be on the SAME website.
-- A page cannot be under itself; a page that already has sub-pages cannot go under another page.
-- Deleting a parent keeps its sub-pages as normal menu items. If a parent is hidden or unpublished, its sub-pages show normally.
-- If you upload the files before the SQL, the menu simply stays flat (nothing breaks).
+## Admin -> Pages
+- One row = title, status, small chips (In menu / Under X / Unpublished changes) + only Edit, View and a "..." menu.
+- "..." menu: Publish/Unpublish, Duplicate, Version history, Remove from menu, Menu name, Put under a page, Move up/down, Delete.
+- Sub-pages are indented under their parent. Header shows "5 pages, 4 published". Better empty state.
+- The "..." menu closes on click-outside/Escape and opens upward when there is no room below.
+- Move up/down now moves a page among its siblings (top-level among top-level, sub-pages inside their parent).
 
-## Tested
-- 80 database checks + earlier 64: all pass.
-- Public menu: dropdown, highlight on child page, parent missing, SQL not run yet, loop in data; no list inside list.
-- Admin: "Under…" sets/clears the parent; all earlier admin and public tests still pass.
-- NOT tested: real phones/browsers (hover vs touch on tablets), your real Supabase.
-
-## Not done yet
-Home/section order in the menu, social-app link previews + sitemap (needs a small Vercel function).
+## Checked
+Rendered in a real Chromium (desktop 1280px and phone 390px) - see /screenshots. Fonts in the screenshots are fallbacks
+(web fonts are blocked in my test), your real fonts will look a little different.
+All earlier tests still pass (80 + 64 database checks, public and admin tests).
