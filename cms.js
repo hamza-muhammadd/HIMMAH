@@ -316,7 +316,7 @@ window.CMS = {
     self.list(map.menux).forEach(function (x) { if (x.label) mi.push({ label: x.label, url: x.url }); });
     var hrefOf = function (x) { return E(x.to ? '#' + x.to : (x.own ? x.url : self.safeUrl(x.url || '#'))); };
     var liH = function (x) {
-      var a = '<a class="' + (x.on ? 'l on' : 'l') + '" href="' + hrefOf(x) + '">' + E(x.label) + (x.kids && x.kids.length ? ' <span class="car" aria-hidden="true">▾</span>' : '') + '</a>';
+      var a = '<a class="' + (x.on ? 'l on' : 'l') + '" href="' + hrefOf(x) + '"' + (x.kids && x.kids.length ? ' aria-haspopup="true"' : '') + '>' + E(x.label) + (x.kids && x.kids.length ? '<svg class="car" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true" focusable="false"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') + '</a>';
       if (x.kids && x.kids.length) return '<li class="has-sub">' + a + '<div class="sub">' + x.kids.map(function (k) { return '<a class="' + (k.on ? 'l on' : 'l') + '" href="' + hrefOf(k) + '">' + E(k.label) + '</a>'; }).join('') + '</div></li>';
       return '<li>' + a + '</li>';
     };

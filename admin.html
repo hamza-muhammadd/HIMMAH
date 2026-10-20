@@ -267,7 +267,7 @@ details.pgm{position:relative}summary.pgmb{list-style:none;cursor:pointer;width:
 <div id="swm" class="modal hide" role="dialog" aria-label="Switch website"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Switch website</b><button class="btn gh sm keep" type="button" data-pf="closesw">Close</button></div><p class="hint">You only see websites you are allowed to manage.</p><div id="swlist"></div></div></div>
 <div id="pal" class="modal hide" role="dialog" aria-label="Search"><div class="pal-box"><input id="pal_q" placeholder="Search pages, websites and actions…" autocomplete="off" aria-label="Search"><ul id="pal_l"></ul></div></div>
 <div id="libm" class="modal hide" role="dialog" aria-label="Choose a picture"><div class="mbox"><div class="rw" style="justify-content:space-between"><b>Choose a picture</b><button class="btn gh sm" type="button" data-act="libx">Close</button></div><p class="hint" id="libst"></p><div class="mgrid" id="libgrid"></div></div></div>
-<script src="cms.js?v=12"></script>
+<script src="cms.js?v=13"></script>
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)},OLD='BetterEveryday',MOV=CMS.MOV,esc=CMS.esc,BL=CMS.BLANK;
@@ -715,14 +715,23 @@ function listMedia(){return fetch(CMS.url+'/storage/v1/object/list/site-images',
  .then(function(r){return r.json()}).then(function(a){if(!Array.isArray(a))throw new Error((a&&a.message)||'could not list pictures');return a.filter(function(x){return x.name&&x.id})})}
 function usageOf(path){var m=mapNow(),hit=[];Object.keys(m).forEach(function(k){if(k!=='blocks'&&String(m[k]).indexOf(path)>-1)hit.push(k==='hero_img'?'Hero photo':k==='cover_img'?'Book cover':k==='logo'?'Logo':k)});
  B.forEach(function(b){if(JSON.stringify(b).indexOf(path)>-1)hit.push(b.name||BT[b.type].n)});return hit}
+var USE={pages:[],home:''};
+function buildUse(){var s=site;return Promise.all([CMS.get('site_pages?select=id,slug,title,content,draft&site=eq.'+enc(s),token).catch(function(){return []}),CMS.load(s,token).catch(function(){return {}}),CMS.load(s+'~draft',token).catch(function(){return {}})]).then(function(r){
+  if(s!==site)return;USE={pages:Array.isArray(r[0])?r[0]:[],home:JSON.stringify(r[1])+JSON.stringify(r[2])}})}
+function usageAll(path){var hit=usageOf(path),mine=PG?PG.id:null;
+ if(PG&&hit.length)hit=hit.map(function(h){return (PG.title||PG.slug)+' › '+h});
+ if(!PG)hit=hit.map(function(h){return 'Home › '+h});
+ if(PG&&USE.home.indexOf(path)>-1)hit.push('Home');else if(!PG&&!hit.length&&USE.home.indexOf(path)>-1)hit.push('Home (saved)');
+ USE.pages.forEach(function(p){if(p.id===mine)return;var live=JSON.stringify(p.content||{}),dr=JSON.stringify(p.draft||{});if(live.indexOf(path)>-1)hit.push((p.title||p.slug)+' (page)');else if(dr.indexOf(path)>-1)hit.push((p.title||p.slug)+' (page, draft only)')});
+ return hit.filter(function(x,i){return hit.indexOf(x)===i})}
 function loadMedia(){var box=$('mediabox');if(!box)return;box.innerHTML='';$('mediast').className='hint';$('mediast').textContent='Loading…';
- listMedia().then(function(a){$('mediast').textContent=a.length+' picture'+(a.length===1?'':'s')+' on this site';
-  box.innerHTML=a.map(function(x){var u=mediaURL(x.name),use=usageOf(site+'/'+x.name),kb=x.metadata&&x.metadata.size?Math.round(x.metadata.size/1024)+' KB':'';
+ buildUse().then(listMedia).then(function(a){$('mediast').textContent=a.length+' picture'+(a.length===1?'':'s')+' on this site';
+  box.innerHTML=a.map(function(x){var u=mediaURL(x.name),use=usageAll(site+'/'+x.name),kb=x.metadata&&x.metadata.size?Math.round(x.metadata.size/1024)+' KB':'';
    return '<div class="mi"><img src="'+esc(u)+'" alt="" loading="lazy"><div>'+esc(x.name)+(kb?' · '+kb:'')+'<br>'+(use.length?'<b>Used in:</b> '+esc(use.join(', ')):'Not used')+'</div><div class="rw"><button class="btn gh sm" type="button" data-act="copyurl" data-url="'+esc(u)+'">Copy link</button><button class="btn dg sm" type="button" data-act="delmedia" data-name="'+esc(x.name)+'">Delete</button></div></div>'}).join('')||'<p class="hint">No pictures yet. Upload some above.</p>'})
  .catch(function(e){$('mediast').className='hint err';$('mediast').textContent='Could not load pictures: '+e.message+'. First time? Run setup.sql in Supabase.'})}
-function delMedia(name){var use=usageOf(site+'/'+name);
- if(!confirm(use.length?'This picture is used in: '+use.join(', ')+'.\nDeleting it will leave those spots empty. Delete anyway?':'Delete this picture for good?'))return;
- fetch(CMS.url+'/storage/v1/object/site-images/'+site+'/'+encodeURIComponent(name),{method:'DELETE',headers:{apikey:CMS.key,Authorization:'Bearer '+token}}).then(function(r){if(!r.ok)throw new Error(r.status);toast('Picture deleted.');loadMedia()}).catch(function(e){toast('Could not delete: '+e.message,true)})}
+function delMedia(name){buildUse().then(function(){var use=usageAll(site+'/'+name);
+ if(!confirm(use.length?'This picture is used in:\n• '+use.join('\n• ')+'\n\nDeleting it will leave those spots empty, and visitors will see a missing picture. Delete anyway?':'Delete this picture for good?'))return;
+ fetch(CMS.url+'/storage/v1/object/site-images/'+site+'/'+encodeURIComponent(name),{method:'DELETE',headers:{apikey:CMS.key,Authorization:'Bearer '+token}}).then(function(r){if(!r.ok)throw new Error(r.status);toast('Picture deleted.');loadMedia()}).catch(function(e){toast('Could not delete: '+e.message,true)})})}
 function copyText(t){var ok=function(){toast('Link copied.')};if(navigator.clipboard)navigator.clipboard.writeText(t).then(ok,ok);else{var x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();try{document.execCommand('copy')}catch(e){}x.remove();ok()}}
 function openLib(){$('libm').classList.remove('hide');$('libgrid').innerHTML='';$('libst').textContent='Loading…';
  listMedia().then(function(a){$('libst').textContent=a.length?'Tap a picture to use it.':'No pictures yet. Upload one first.';$('libgrid').innerHTML=a.map(function(x){var u=mediaURL(x.name);return '<button class="mi libpick" type="button" data-act="libpick" data-url="'+esc(u)+'"><img src="'+esc(u)+'" alt=""><div>'+esc(x.name)+'</div></button>'}).join('')})
